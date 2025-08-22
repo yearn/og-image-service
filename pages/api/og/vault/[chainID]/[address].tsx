@@ -12,9 +12,9 @@ const BRANDS = {
     cta: 'Earn With Yearn',
     logoColor: '#FFFFFF',
   },
-  bearn: {
-    gradient: 'linear-gradient(225deg, #004bff 0%, #00c2ff 100%)',
-    cta: 'Built by Mom',
+  katana: {
+    gradient: 'linear-gradient(225deg, #263490ff 0%, #d98404ff 100%)',
+    cta: 'Enter the Dojo',
     logoColor: '#FFFFFF',
   },
 } as const
@@ -131,15 +131,20 @@ function calculateKatanaAPY(extra: Record<string, number>): number {
 
 function calculateEstimatedAPY(
   vault: any,
-  katanaAprs: any | null,
+  katanaAprs: any | undefined,
   yBoldApr: { estimatedAPY: number } | null
-): number {
-  if (!vault?.apr) return 0
+): [number, number | undefined] {
+  // Defaults
+  if (!vault?.apr) return [0, undefined]
+
+  // If yBOLD, return YBOLD APR as underlying; rewards are none
   if (
     vault.address.toLowerCase() === YBOLD_VAULT_ADDRESS.toLowerCase() &&
     yBoldApr
   )
-    return yBoldApr.estimatedAPY
+    return [yBoldApr.estimatedAPY || 0, undefined]
+
+  // If Katana vault, return Katana APR as underlying;
   if (vault.chainID === 747474 && katanaAprs) {
     const normalized = vault.address.toLowerCase().replace('0x', '')
     const withPrefix = `0x${normalized}`
@@ -147,27 +152,19 @@ function calculateEstimatedAPY(
       katanaAprs[normalized]?.apr?.extra ||
       katanaAprs[withPrefix]?.apr?.extra ||
       katanaAprs[vault.address]?.apr?.extra
-    return extra ? calculateKatanaAPY(extra) : 0
+    const katAPY = extra ? calculateKatanaAPY(extra) : 0
+    return [katAPY > 0 ? katAPY : 0, undefined]
   }
+
+  // Rewards APR is sum of known rewards components
   const sumRewards =
     (vault.apr.extra?.stakingRewardsAPR || 0) +
     (vault.apr.extra?.gammaRewardAPR || 0)
-  if (vault.apr.forwardAPR?.type === '' || !vault.apr.forwardAPR?.type) {
-    if ((vault.apr.extra?.stakingRewardsAPR || 0) > 0)
-      return (vault.apr.extra.stakingRewardsAPR || 0) + (vault.apr.netAPR || 0)
-    return vault.apr.netAPR || 0
-  }
-  if (
-    vault.chainID === 1 &&
-    (vault.apr.forwardAPR.composite?.boost || 0) > 0 &&
-    !vault.apr.extra?.stakingRewardsAPR
-  ) {
-    return vault.apr.forwardAPR.netAPR || 0
-  }
-  if (sumRewards > 0) return sumRewards + (vault.apr.forwardAPR.netAPR || 0)
-  const hasCurrent = (vault.apr.forwardAPR?.netAPR || 0) > 0
-  if (hasCurrent) return vault.apr.forwardAPR.netAPR
-  return vault.apr.netAPR || 0
+
+  // Underlying APY prefers forwardAPR.netAPR; falls back to netAPR
+  const underlying = vault.apr.forwardAPR?.netAPR || vault.apr.netAPR || 0
+  const rewards = sumRewards > 0 ? sumRewards : undefined
+  return [underlying, rewards]
 }
 
 function calculateHistoricalAPY(
@@ -207,12 +204,25 @@ export default async function handler(req: NextRequest) {
 
   const data = (() => {
     if (vault) {
-      const est = calculateEstimatedAPY(vault, katanaAprs, yBoldApr)
+      const [underlyingAPY, rewardsAPR] = calculateEstimatedAPY(
+        vault,
+        katanaAprs,
+        yBoldApr
+      )
+      const est = underlyingAPY
+      const rewards = rewardsAPR
       const hist = calculateHistoricalAPY(vault, yBoldApr)
+      console.log(
+        `${process.env.BASE_YEARN_ASSETS_URI}/${chainID}/${vault.token.address}/logo-128.png`
+      )
       return {
-        icon: `${process.env.BASE_YEARN_ASSETS_URI}/${chainID}/${vault.token.address}/logo-128.png`,
+        icon: `${
+          process.env.BASE_YEARN_ASSETS_URI
+        }/${chainID}/${vault.token.address.toLowerCase()}/logo-128.png`,
         name: vault.name?.replace(/\s+Vault$/, '') || 'Yearn Vault',
         estimatedApy: `${(est * 100).toFixed(2)}%`,
+        rewardsAPR: rewards ? `${(rewards * 100).toFixed(2)}%` : undefined,
+        minBoost: rewards ? `${(rewards * 10).toFixed(2)}%` : undefined,
         historicalApy: hist === -1 ? '--%' : `${(hist * 100).toFixed(2)}%`,
         tvlUsd: formatUSD(vault.tvl?.tvl || 0),
         chainName: getChainName(parseInt(chainID, 10)),
@@ -280,6 +290,8 @@ export default async function handler(req: NextRequest) {
   const vaultName = data.name
   const vaultIcon = data.icon
   const estimatedApyValue = data.estimatedApy
+  const rewardsAPRValue = data.rewardsAPR
+  const minBoost = data.minBoost
   const historicalApyValue = data.historicalApy
   const tvlValue = data.tvlUsd
   const footerText = `${data.chainName} | ${address.slice(
@@ -397,7 +409,7 @@ export default async function handler(req: NextRequest) {
                 </div>
                 <div
                   style={{
-                    width: 450,
+                    width: 500,
                     flexDirection: 'column',
                     justifyContent: 'flex-start',
                     alignItems: 'flex-start',
@@ -415,27 +427,104 @@ export default async function handler(req: NextRequest) {
                   >
                     <div
                       style={{
-                        textAlign: 'right',
-                        color: 'white',
-                        fontSize: 32,
-                        fontFamily: 'Aeonik',
-                        fontWeight: '300',
-                        wordWrap: 'break-word',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        marginTop: rewardsAPRValue ? '20px' : '0px',
                       }}
                     >
-                      Estimated APY:
+                      <div
+                        style={{
+                          textAlign: 'right',
+                          color: 'white',
+                          fontSize: 32,
+                          fontFamily: 'Aeonik',
+                          fontWeight: '300',
+                          overflow: 'visible',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        Estimated APY:
+                      </div>
+                      {rewardsAPRValue && (
+                        <div
+                          style={{
+                            textAlign: 'left',
+                            color: 'white',
+                            fontSize: 24,
+                            fontFamily: 'Aeonik',
+                            fontWeight: '300',
+                            display: 'flex',
+                            alignItems: 'center',
+                            marginTop: 10,
+                          }}
+                        >
+                          Rewards APR:
+                        </div>
+                      )}
                     </div>
                     <div
                       style={{
-                        textAlign: 'right',
-                        color: 'white',
-                        fontSize: 48,
-                        fontFamily: 'Aeonik',
-                        fontWeight: '700',
-                        wordWrap: 'break-word',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        marginTop: rewardsAPRValue ? '10px' : '0px',
                       }}
                     >
-                      {estimatedApyValue}
+                      <div
+                        style={{
+                          textAlign: 'right',
+                          color: 'white',
+                          fontSize: 48,
+                          fontFamily: 'Aeonik',
+                          fontWeight: '700',
+                          wordWrap: 'break-word',
+                        }}
+                      >
+                        {estimatedApyValue}
+                      </div>
+                      {rewardsAPRValue && (
+                        <div
+                          style={{
+                            textAlign: 'right',
+                            color: 'white',
+                            fontSize: 24,
+                            fontFamily: 'Aeonik',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              marginRight: 4,
+                              fontSize: 18,
+                            }}
+                          >
+                            ⚡️
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              fontSize: 24,
+                              margin: '0 4px',
+                            }}
+                          >
+                            <div>{minBoost}</div>
+                            <div style={{ display: 'flex', margin: '0 8px' }}>
+                              &nbsp;&rarr;&nbsp;
+                            </div>
+                            <div>{rewardsAPRValue}</div>
+                          </div>
+                          {/* <div style={{ marginRight: 4 }}>+ up to</div>
+                          <div style={{ fontSize: 24, margin: '0 4px' }}>
+                            {rewardsAPRValue}
+                          </div>
+                          <div style={{ marginLeft: 4 }}>in rewards</div> */}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div

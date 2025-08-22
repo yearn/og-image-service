@@ -6,9 +6,10 @@ const BRANDS = {
     gradient: 'linear-gradient(225deg, #b51055ff 0%, #263490ff 100%)',
     cta: 'Earn With Yearn',
   },
-  bearn: {
-    gradient: 'linear-gradient(225deg, #004bff 0%, #00c2ff 100%)',
-    cta: 'Built by Mom',
+  katana: {
+    gradient: 'linear-gradient(225deg, #263490ff 0%, #d98404ff 100%)',
+    cta: 'Enter the Dojo',
+    logoColor: '#FFFFFF',
   },
 } as const
 
