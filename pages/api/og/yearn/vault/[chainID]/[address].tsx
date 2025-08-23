@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import { ImageResponse } from 'next/og'
 import type { NextRequest } from 'next/server'
 import { TypeMarkYearnNaughty } from '@lib/icons/TypeMarkYearn-naughty'
 import { BRANDS } from '@lib/og/brands'
@@ -21,18 +22,15 @@ import { resolveOrigin } from '@lib/og/origin'
 
 export const runtime = 'edge'
 
-// Back-compat route that supports ?brand=yearn|katana. Prefer new brand-specific routes.
 export default async function handler(req: NextRequest) {
   const url = req.url || req.nextUrl?.pathname || ''
-  const match = url.match(/\/api\/og\/vault\/(\d+)\/([a-fA-F0-9x]+)/i)
+  const match = url.match(/\/api\/og\/yearn\/vault\/(\d+)\/([a-fA-F0-9x]+)/i)
   const chainID = match?.[1] || '1'
   const address = match?.[2] || ''
   if (!isValidChainID(chainID) || !isValidEthereumAddress(address))
     return new Response('Invalid chainID or address', { status: 400 })
 
-  const brandKey = (req.nextUrl?.searchParams.get('brand') ||
-    'yearn') as keyof typeof BRANDS
-  const brand = BRANDS[brandKey] || BRANDS.yearn
+  const brand = BRANDS.yearn
 
   const vault = await fetchVaultData(chainID, address)
   let katanaAprs: any | null = null

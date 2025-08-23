@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 import type { NextRequest } from 'next/server'
-import { TypeMarkYearnNaughty } from '@lib/icons/TypeMarkYearn-naughty'
 import { BRANDS } from '@lib/og/brands'
 import {
   formatUSD,
@@ -21,18 +20,15 @@ import { resolveOrigin } from '@lib/og/origin'
 
 export const runtime = 'edge'
 
-// Back-compat route that supports ?brand=yearn|katana. Prefer new brand-specific routes.
 export default async function handler(req: NextRequest) {
   const url = req.url || req.nextUrl?.pathname || ''
-  const match = url.match(/\/api\/og\/vault\/(\d+)\/([a-fA-F0-9x]+)/i)
+  const match = url.match(/\/api\/og\/katana\/vault\/(\d+)\/([a-fA-F0-9x]+)/i)
   const chainID = match?.[1] || '1'
   const address = match?.[2] || ''
   if (!isValidChainID(chainID) || !isValidEthereumAddress(address))
     return new Response('Invalid chainID or address', { status: 400 })
 
-  const brandKey = (req.nextUrl?.searchParams.get('brand') ||
-    'yearn') as keyof typeof BRANDS
-  const brand = BRANDS[brandKey] || BRANDS.yearn
+  const brand = BRANDS.katana
 
   const vault = await fetchVaultData(chainID, address)
   let katanaAprs: any | null = null
@@ -82,11 +78,22 @@ export default async function handler(req: NextRequest) {
     protocol
   )
 
+  const brandMark = (
+    <div style={{ display: 'flex', alignItems: 'center', marginTop: '40px' }}>
+      <img
+        src={`${protocol}://${origin}/graphics/yearnxkatana-typemark.png`}
+        alt="Yearn × Katana"
+        height={75}
+        style={{ objectFit: 'contain', display: 'block' }}
+      />
+    </div>
+  )
+
   return renderVaultOG(
     brand,
     data,
     { aeonikRegular, aeonikBold, aeonikMono },
-    <TypeMarkYearnNaughty width={300} height={90} color={brand.logoColor} />,
+    brandMark,
     { origin, protocol }
   )
 }
