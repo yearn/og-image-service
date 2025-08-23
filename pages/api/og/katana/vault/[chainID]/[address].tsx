@@ -1,5 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-import { ImageResponse } from 'next/og'
 import type { NextRequest } from 'next/server'
 import { BRANDS } from '@lib/og/brands'
 import {
@@ -84,7 +83,6 @@ export default async function handler(req: NextRequest) {
       <img
         src={`${protocol}://${origin}/graphics/yearnxkatana-typemark.png`}
         alt="Yearn × Katana"
-        //   width={309}
         height={75}
         style={{ objectFit: 'contain', display: 'block' }}
       />
