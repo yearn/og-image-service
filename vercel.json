@@ -1,11 +1,5 @@
 {
   "cleanUrls": true,
   "installCommand": "bun install",
-  "buildCommand": "bunx --bun next build",
-  "outputDirectory": ".next",
-  "functions": {
-    "api/**": {
-      "runtime": "edge"
-    }
-  }
+  "buildCommand": "bunx --bun next build"
 }
