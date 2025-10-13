@@ -1,7 +1,12 @@
 import { YBOLD_VAULT_ADDRESS } from './data'
 
 export function calculateKatanaAPY(extra: Record<string, number>): number {
-  const { katanaRewardsAPR: _legacy, ...rest } = extra || {}
+  const {
+    katanaRewardsAPR: _legacy,
+    katanaBonusAPY: _bonus,
+    steerPointsPerDollar: _points,
+    ...rest
+  } = extra || {}
   return Object.values(rest).reduce(
     (s, v) => s + (typeof v === 'number' ? v : 0),
     0
