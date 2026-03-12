@@ -17,20 +17,40 @@ export function resolveOrigin(req: NextRequest): {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
-  const allowed = allowedHosts.length ? allowedHosts : defaultAllowed
-  const rawOrigin =
-    req.headers.get('x-forwarded-host') || req.headers.get('host') || ''
-  const originHost = rawOrigin.split(':')[0]
-  const originPort = rawOrigin.split(':')[1]
-  const validatedOrigin = allowed.includes(rawOrigin)
-    ? rawOrigin
-    : rawOrigin.endsWith('.vercel.app')
-      ? rawOrigin
-    : allowed.includes(originHost)
-      ? originHost + (originPort ? ':' + originPort : '')
-      : 'yearn.fi'
+  const allowed = Array.from(new Set([...defaultAllowed, ...allowedHosts]))
+  const rawCandidates = [
+    req.headers.get('x-forwarded-host') || '',
+    req.headers.get('host') || '',
+    req.nextUrl?.host || '',
+    (() => {
+      try {
+        return new URL(req.url).host
+      } catch {
+        return ''
+      }
+    })(),
+  ]
+
+  const candidates = rawCandidates
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter(Boolean)
+
+  const validatedOrigin =
+    candidates.find((candidate) => {
+      if (allowed.includes(candidate)) return true
+      const candidateHost = candidate.split(':')[0]
+      if (allowed.includes(candidateHost)) return true
+      return candidate.endsWith('.vercel.app')
+    }) || 'og.yearn.fi'
+
+  const forwardedProto = req.headers.get('x-forwarded-proto')
+  const requestProtocol = req.nextUrl?.protocol === 'http:' ? 'http' : 'https'
   const protocol: 'http' | 'https' = validatedOrigin.includes('localhost')
     ? 'http'
-    : 'https'
+    : forwardedProto === 'http' || forwardedProto === 'https'
+      ? forwardedProto
+      : requestProtocol
+
   return { origin: validatedOrigin, protocol }
 }
