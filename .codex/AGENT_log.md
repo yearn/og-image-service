@@ -1,3 +1,0 @@
-- Seed entry: repo was missing `.codex/AGENT_log.md`; initialize it before starting work when absent.
-- Cross-check `yearn.fi-bento` when planning OG work for yvUSD; the intended `yvusd-og-bg.png` asset may exist there before it is copied into this service.
-- Add a minimal `.eslintrc.json` before relying on `next lint`; otherwise the command blocks on the interactive Next.js ESLint setup prompt.
