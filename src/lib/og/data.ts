@@ -2,6 +2,25 @@ export const ALLOWED_CHAIN_IDS = [1, 10, 137, 250, 8453, 42161, 747474]
 export const YBOLD_VAULT_ADDRESS = '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8'
 export const YBOLD_STAKING_ADDRESS =
   '0x23346B04a7f55b8760E5860AA5A77383D63491cD'
+export const YVUSD_CHAIN_ID = 1
+export const YVUSD_UNLOCKED_ADDRESS =
+  '0x696d02Db93291651ED510704c9b286841d506987'
+export const YVUSD_LOCKED_ADDRESS =
+  '0xAaaFEa48472f77563961Cdb53291DEDfB46F9040'
+
+export function normalizeEthereumAddress(address: string): string {
+  const normalized = address.toLowerCase()
+  return normalized.startsWith('0x') ? normalized : `0x${normalized}`
+}
+
+export function isYvUsdAddress(chainID: string, address: string): boolean {
+  if (Number(chainID) !== YVUSD_CHAIN_ID) return false
+  const normalized = normalizeEthereumAddress(address)
+  return (
+    normalized === YVUSD_UNLOCKED_ADDRESS.toLowerCase() ||
+    normalized === YVUSD_LOCKED_ADDRESS.toLowerCase()
+  )
+}
 
 export function isValidChainID(chainID: string): boolean {
   return ALLOWED_CHAIN_IDS.includes(Number(chainID))
