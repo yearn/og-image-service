@@ -9,8 +9,9 @@ export const YVUSD_LOCKED_ADDRESS =
   '0xAaaFEa48472f77563961Cdb53291DEDfB46F9040'
 
 export function normalizeEthereumAddress(address: string): string {
-  const normalized = address.toLowerCase()
-  return normalized.startsWith('0x') ? normalized : `0x${normalized}`
+  return address.startsWith('0x') || address.startsWith('0X')
+    ? address
+    : `0x${address}`
 }
 
 export function isYvUsdAddress(chainID: string, address: string): boolean {
