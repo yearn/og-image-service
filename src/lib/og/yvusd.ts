@@ -42,14 +42,17 @@ export type YvUsdOGData = {
   address: string
 }
 
-function toFiniteNumber(value: number | string | null | undefined): number | null {
+function toFiniteNumber(
+  value: number | string | null | undefined,
+): number | null {
   if (value === null || value === undefined) return null
   const parsed = typeof value === 'string' ? Number(value) : value
   return Number.isFinite(parsed) ? parsed : null
 }
 
 function toNonNegativeNumber(value: number | null | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return 0
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0)
+    return 0
   return value
 }
 
@@ -59,23 +62,21 @@ function formatPercent(value: number): string {
 
 export function getYvUsdAprServiceVault(
   aprServicePayload: any | null,
-  address: string
+  address: string,
 ): YvUsdAprServiceVault | null {
   const normalizedTarget = normalizeEthereumAddress(address)
-  return (
-    Object.values(aprServicePayload || {}).find((vault) => {
-      const candidate = (vault as YvUsdAprServiceVault | null)?.address
-      return (
-        typeof candidate === 'string' &&
-        normalizeEthereumAddress(candidate) === normalizedTarget
-      )
-    }) || null
-  ) as YvUsdAprServiceVault | null
+  return (Object.values(aprServicePayload || {}).find((vault) => {
+    const candidate = (vault as YvUsdAprServiceVault | null)?.address
+    return (
+      typeof candidate === 'string' &&
+      normalizeEthereumAddress(candidate) === normalizedTarget
+    )
+  }) || null) as YvUsdAprServiceVault | null
 }
 
 export function resolveYvUsdEstimatedApy(
   aprServiceVault: YvUsdAprServiceVault | null,
-  vault: YvUsdVaultData | null
+  vault: YvUsdVaultData | null,
 ): number {
   return (
     toFiniteNumber(aprServiceVault?.apy) ??
@@ -85,7 +86,9 @@ export function resolveYvUsdEstimatedApy(
   )
 }
 
-export function resolveYvUsdHistoricalApy(vault: YvUsdVaultData | null): number {
+export function resolveYvUsdHistoricalApy(
+  vault: YvUsdVaultData | null,
+): number {
   const monthly = toFiniteNumber(vault?.apr?.points?.monthAgo) ?? 0
   const weekly = toFiniteNumber(vault?.apr?.points?.weekAgo) ?? 0
   return monthly > 0 ? monthly : weekly
@@ -93,7 +96,7 @@ export function resolveYvUsdHistoricalApy(vault: YvUsdVaultData | null): number 
 
 export function resolveYvUsdCombinedTvl(
   unlockedVault: YvUsdVaultData | null,
-  lockedVault: YvUsdVaultData | null
+  lockedVault: YvUsdVaultData | null,
 ): number {
   return (
     toNonNegativeNumber(toFiniteNumber(unlockedVault?.tvl?.tvl)) +
@@ -110,24 +113,26 @@ export async function resolveYvUsdOGData(): Promise<YvUsdOGData> {
 
   const unlockedAprServiceVault = getYvUsdAprServiceVault(
     aprServicePayload,
-    YVUSD_UNLOCKED_ADDRESS
+    YVUSD_UNLOCKED_ADDRESS,
   )
   const lockedAprServiceVault = getYvUsdAprServiceVault(
     aprServicePayload,
-    YVUSD_LOCKED_ADDRESS
+    YVUSD_LOCKED_ADDRESS,
   )
 
   return {
     iconPath: '/graphics/yvUSD-seal.png',
     name: 'yvUSD',
     estimatedApyLocked: formatPercent(
-      resolveYvUsdEstimatedApy(lockedAprServiceVault, lockedVault)
+      resolveYvUsdEstimatedApy(lockedAprServiceVault, lockedVault),
     ),
     estimatedApyUnlocked: formatPercent(
-      resolveYvUsdEstimatedApy(unlockedAprServiceVault, unlockedVault)
+      resolveYvUsdEstimatedApy(unlockedAprServiceVault, unlockedVault),
     ),
     historicalApyLocked: formatPercent(resolveYvUsdHistoricalApy(lockedVault)),
-    historicalApyUnlocked: formatPercent(resolveYvUsdHistoricalApy(unlockedVault)),
+    historicalApyUnlocked: formatPercent(
+      resolveYvUsdHistoricalApy(unlockedVault),
+    ),
     tvlUsd: formatUSD(resolveYvUsdCombinedTvl(unlockedVault, lockedVault)),
     chainName: getChainName(YVUSD_CHAIN_ID),
     address: YVUSD_UNLOCKED_ADDRESS,
