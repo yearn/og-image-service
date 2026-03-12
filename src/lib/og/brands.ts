@@ -1,4 +1,4 @@
-export type BrandKey = 'yearn' | 'katana'
+export type BrandKey = 'yearn' | 'katana' | 'yvusd'
 
 export type BrandConfig = {
   gradient: string
@@ -19,5 +19,11 @@ export const BRANDS: Record<BrandKey, BrandConfig> = {
     cta: 'Enter the Dojo',
     logoColor: '#FFFFFF',
     bgPath: '/graphics/katana-bg.png',
+  },
+  yvusd: {
+    gradient: 'linear-gradient(225deg, #0b1733 0%, #1e3f73 100%)',
+    cta: 'Earn With Yearn',
+    logoColor: '#FFFFFF',
+    bgPath: '/graphics/yvusd-og-bg-2b.png',
   },
 }

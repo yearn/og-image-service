@@ -17,6 +17,7 @@ A Vercel-ready microservice to generate Open Graph (OG) social images for Yearn 
 - `YDAEMON_BASE_URI` e.g. `https://ydaemon.yearn.fi` (required for vault route)
 - `BASE_YEARN_ASSETS_URI` e.g. `cdn.jsdelivr.net` (vault logos)
 - `KATANA_APR_SERVICE_API` optional for Katana chain
+- `YVUSD_APR_SERVICE_API` optional for yvUSD APR overlay; defaults to `https://yearn-yvusd-apr-service.vercel.app/api/aprs`
 - `ALLOWED_HOSTS` optional comma list for font origin resolution (defaults to yearn.fi and localhost)
 
 ## Run locally

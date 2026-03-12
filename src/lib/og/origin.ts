@@ -12,6 +12,7 @@ export function resolveOrigin(req: NextRequest): {
   origin: string
   protocol: 'http' | 'https'
 } {
+  const vercelUrl = process.env.VERCEL_URL?.trim()
   const defaultAllowed = [
     'yearn.fi',
     'og.yearn.fi',
@@ -19,6 +20,7 @@ export function resolveOrigin(req: NextRequest): {
     'localhost',
     '127.0.0.1',
     'app.yearn.fi',
+    ...(vercelUrl ? [vercelUrl] : []),
   ]
   const allowedHosts = (process.env.ALLOWED_HOSTS || '')
     .split(',')
