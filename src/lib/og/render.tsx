@@ -471,7 +471,7 @@ function renderYvUsdMetricValue(
           style={{
             marginLeft: 10,
             color: 'white',
-            fontSize: 32,
+            fontSize: 48,
             fontFamily: 'Aeonik',
             fontWeight: '700',
           }}
@@ -683,7 +683,7 @@ export function renderYvUsdOG(
 
                 <div
                   style={{
-                    width: 860,
+                    width: 700,
                     flexDirection: 'column',
                     justifyContent: 'flex-start',
                     alignItems: 'flex-start',
