@@ -1,7 +1,7 @@
 import {
   formatUSD,
   getChainName,
-  normalizeEthereumAddress,
+  toComparableEthereumAddress,
   YVUSD_CHAIN_ID,
   YVUSD_LOCKED_ADDRESS,
   YVUSD_UNLOCKED_ADDRESS,
@@ -64,12 +64,12 @@ export function getYvUsdAprServiceVault(
   aprServicePayload: any | null,
   address: string,
 ): YvUsdAprServiceVault | null {
-  const normalizedTarget = normalizeEthereumAddress(address)
+  const normalizedTarget = toComparableEthereumAddress(address)
   return (Object.values(aprServicePayload || {}).find((vault) => {
     const candidate = (vault as YvUsdAprServiceVault | null)?.address
     return (
       typeof candidate === 'string' &&
-      normalizeEthereumAddress(candidate) === normalizedTarget
+      toComparableEthereumAddress(candidate) === normalizedTarget
     )
   }) || null) as YvUsdAprServiceVault | null
 }
