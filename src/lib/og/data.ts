@@ -9,17 +9,20 @@ export const YVUSD_LOCKED_ADDRESS =
   '0xAaaFEa48472f77563961Cdb53291DEDfB46F9040'
 
 export function normalizeEthereumAddress(address: string): string {
-  return address.startsWith('0x') || address.startsWith('0X')
-    ? address
-    : `0x${address}`
+  const withoutPrefix = address.replace(/^0x/i, '')
+  return `0x${withoutPrefix}`
+}
+
+export function toComparableEthereumAddress(address: string): string {
+  return normalizeEthereumAddress(address).toLowerCase()
 }
 
 export function isYvUsdAddress(chainID: string, address: string): boolean {
   if (Number(chainID) !== YVUSD_CHAIN_ID) return false
-  const normalized = normalizeEthereumAddress(address)
+  const normalized = toComparableEthereumAddress(address)
   return (
-    normalized === YVUSD_UNLOCKED_ADDRESS.toLowerCase() ||
-    normalized === YVUSD_LOCKED_ADDRESS.toLowerCase()
+    normalized === toComparableEthereumAddress(YVUSD_UNLOCKED_ADDRESS) ||
+    normalized === toComparableEthereumAddress(YVUSD_LOCKED_ADDRESS)
   )
 }
 

@@ -618,7 +618,6 @@ export function renderYvUsdOG(
         <div
           style={{
             position: 'relative',
-            zIndex: 1,
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
