@@ -24,6 +24,6 @@ export const BRANDS: Record<BrandKey, BrandConfig> = {
     gradient: 'linear-gradient(225deg, #0b1733 0%, #1e3f73 100%)',
     cta: 'Earn With Yearn',
     logoColor: '#FFFFFF',
-    bgPath: '/graphics/yvusd-og-bg-2b.png',
+    bgPath: '/graphics/yvusd-og-bg-2b.jpg',
   },
 }
