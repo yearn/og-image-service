@@ -121,7 +121,7 @@ export async function resolveYvUsdOGData(): Promise<YvUsdOGData> {
   )
 
   return {
-    iconPath: '/graphics/yvUSD-seal.png',
+    iconPath: '/graphics/yvUSD-full.png',
     name: 'yvUSD',
     estimatedApyLocked: formatPercent(
       resolveYvUsdEstimatedApy(lockedAprServiceVault, lockedVault),
