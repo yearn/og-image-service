@@ -1,14 +1,26 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 import {
   DEFAULT_YEARN_ASSETS_URI,
   getYearnTokenLogoUrl,
   normalizeYearnAssetsBaseUrl,
 } from './data'
 
+const ORIGINAL_BASE_YEARN_ASSETS_URI = process.env.BASE_YEARN_ASSETS_URI
+
+afterEach(() => {
+  if (ORIGINAL_BASE_YEARN_ASSETS_URI === undefined) {
+    delete process.env.BASE_YEARN_ASSETS_URI
+  } else {
+    process.env.BASE_YEARN_ASSETS_URI = ORIGINAL_BASE_YEARN_ASSETS_URI
+  }
+})
+
 describe('Yearn asset URL helpers', () => {
   test('falls back to the default token-assets CDN when no base URL is provided', () => {
+    delete process.env.BASE_YEARN_ASSETS_URI
+
     expect(normalizeYearnAssetsBaseUrl(undefined)).toBe(
-      `${DEFAULT_YEARN_ASSETS_URI}/tokens`
+      DEFAULT_YEARN_ASSETS_URI
     )
   })
 

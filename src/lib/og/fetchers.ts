@@ -17,12 +17,27 @@ function pickNumber(...values: unknown[]): number {
   return 0
 }
 
+function normalizeHttpsBaseUrl(rawValue: string | undefined, fallback: string): string {
+  const normalizedFallback = fallback.replace(/\/+$/, '')
+  const candidate = rawValue?.trim()
+
+  if (!candidate) return normalizedFallback
+
+  try {
+    const parsed = new URL(candidate)
+    if (parsed.protocol !== 'https:') return normalizedFallback
+    return parsed.toString().replace(/\/+$/, '')
+  } catch {
+    return normalizedFallback
+  }
+}
+
 function getKongRestBaseUrl(): string {
-  return (process.env.KONG_REST_URL || DEFAULT_KONG_REST_URL).replace(/\/$/, '')
+  return normalizeHttpsBaseUrl(process.env.KONG_REST_URL, DEFAULT_KONG_REST_URL)
 }
 
 function getYDaemonBaseUrl(): string {
-  return (process.env.YDAEMON_BASE_URI || DEFAULT_YDAEMON_BASE_URL).replace(/\/$/, '')
+  return normalizeHttpsBaseUrl(process.env.YDAEMON_BASE_URI, DEFAULT_YDAEMON_BASE_URL)
 }
 
 async function fetchKongVaultSnapshot(

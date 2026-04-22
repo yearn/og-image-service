@@ -152,6 +152,104 @@ describe('Kong vault snapshot normalization', () => {
     expect(vault?.tvl?.tvl).toBe(10)
   })
 
+  test('falls back to the default Kong REST base URL when the env override is blank', async () => {
+    process.env.KONG_REST_URL = '   '
+
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe(
+        'https://kong.yearn.fi/api/rest/snapshot/747474/0x80c34BD3A3569E126e7055831036aa7b212cB159'
+      )
+
+      return {
+        ok: true,
+        json: async () => ({
+          address: '0x80c34BD3A3569E126e7055831036aa7b212cB159',
+          chainId: 747474,
+          name: 'vbUSDC yVault',
+          symbol: 'yvvbUSDC',
+          decimals: 6,
+          asset: {
+            address: '0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36',
+            name: 'Vault Bridge USDC',
+            symbol: 'vbUSDC',
+            decimals: '6',
+          },
+          tvl: { close: 10 },
+          performance: {
+            historical: { net: 0.01, weeklyNet: 0.01, monthlyNet: 0.02, inceptionNet: 0.03 },
+          },
+        }),
+      } as Response
+    })
+
+    global.fetch = fetchMock as typeof fetch
+
+    const vault = await fetchVaultData(
+      '747474',
+      '0x80c34BD3A3569E126e7055831036aa7b212cB159'
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(vault?.name).toBe('vbUSDC yVault')
+  })
+
+  test('falls back to the default yDaemon base URL when the env override is non-https', async () => {
+    delete process.env.KONG_REST_URL
+    process.env.YDAEMON_BASE_URI = 'http://localhost:9999'
+
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
+      const url = String(input)
+
+      if (url === 'https://kong.yearn.fi/api/rest/snapshot/747474/0x80c34BD3A3569E126e7055831036aa7b212cB159') {
+        return {
+          ok: false,
+          status: 403,
+        } as Response
+      }
+
+      if (url === 'https://ydaemon.yearn.fi/747474/vaults/0x80c34BD3A3569E126e7055831036aa7b212cB159') {
+        return {
+          ok: true,
+          json: async () => ({
+            address: '0x80c34BD3A3569E126e7055831036aa7b212cB159',
+            chainID: 747474,
+            name: 'USDC yVault',
+            token: {
+              address: '0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36',
+              name: 'Vault Bridge USDC',
+              symbol: 'vbUSDC',
+              decimals: 6,
+            },
+            tvl: { tvl: 18806547.346547082 },
+            apr: {
+              netAPR: 0.009217438151773116,
+              points: {
+                weekAgo: 0.00860720591038322,
+                monthAgo: 0.009217438151773116,
+              },
+              extra: {},
+              forwardAPR: {
+                netAPR: null,
+              },
+            },
+          }),
+        } as Response
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    global.fetch = fetchMock as typeof fetch
+
+    const vault = await fetchVaultData(
+      '747474',
+      '0x80c34BD3A3569E126e7055831036aa7b212cB159'
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(vault?.name).toBe('USDC yVault')
+  })
+
   test('falls back to yDaemon when Kong snapshot fetching fails', async () => {
     delete process.env.KONG_REST_URL
     delete process.env.YDAEMON_BASE_URI
