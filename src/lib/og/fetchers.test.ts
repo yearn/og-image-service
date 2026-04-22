@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test'
-import { fetchVaultData, normalizeKongVaultSnapshot } from './fetchers'
+import { fetchVaultData, fetchYBoldApr, normalizeKongVaultSnapshot } from './fetchers'
 
 const ORIGINAL_FETCH = global.fetch
 const ORIGINAL_KONG_REST_URL = process.env.KONG_REST_URL
@@ -40,6 +40,7 @@ describe('Kong vault snapshot normalization', () => {
         oracle: {
           apr: 0.06566843618088732,
           apy: 0.06782834953930439,
+          netAPY: 0.06123456789,
         },
         estimated: {
           type: 'katana-estimated-apr',
@@ -90,7 +91,7 @@ describe('Kong vault snapshot normalization', () => {
         },
         forwardAPR: {
           type: 'estimated',
-          netAPR: 0.06782834953930439,
+          netAPR: 0.06123456789,
           composite: {
             boost: 0,
             poolAPY: 0,
@@ -209,5 +210,167 @@ describe('Kong vault snapshot normalization', () => {
     expect(vault?.chainID).toBe(747474)
     expect(vault?.token.decimals).toBe(6)
     expect(vault?.tvl?.tvl).toBe(18806547.346547082)
+  })
+
+  test('prefers the ysYBOLD staking snapshot oracle netAPY for yBOLD estimated APY', async () => {
+    delete process.env.KONG_REST_URL
+
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe(
+        'https://kong.yearn.fi/api/rest/snapshot/1/0x23346B04a7f55b8760E5860AA5A77383D63491cD'
+      )
+
+      return {
+        ok: true,
+        json: async () => ({
+          address: '0x23346B04a7f55b8760E5860AA5A77383D63491cD',
+          chainId: 1,
+          name: 'Staked yBOLD',
+          symbol: 'ysyBOLD',
+          decimals: 18,
+          asset: {
+            address: '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8',
+            name: 'yBOLD',
+            symbol: 'yBOLD',
+            decimals: '18',
+          },
+          apy: {
+            net: 0.04639864387148984,
+          },
+          tvl: { close: 1 },
+          performance: {
+            historical: { net: 0.04639864387148984 },
+            oracle: {
+              netAPY: 0.0344,
+              apy: 0.0355,
+              apr: 0.0349,
+            },
+          },
+        }),
+      } as Response
+    })
+
+    global.fetch = fetchMock as typeof fetch
+
+    const apr = await fetchYBoldApr(
+      '1',
+      '0x23346B04a7f55b8760E5860AA5A77383D63491cD'
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(apr).toEqual({
+      estimatedAPY: 0.0344,
+      historicalAPY: 0.04639864387148984,
+    })
+  })
+
+  test('falls back to the ysYBOLD staking snapshot oracle APY when netAPY is unavailable', async () => {
+    delete process.env.KONG_REST_URL
+
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe(
+        'https://kong.yearn.fi/api/rest/snapshot/1/0x23346B04a7f55b8760E5860AA5A77383D63491cD'
+      )
+
+      return {
+        ok: true,
+        json: async () => ({
+          address: '0x23346B04a7f55b8760E5860AA5A77383D63491cD',
+          chainId: 1,
+          name: 'Staked yBOLD',
+          symbol: 'ysyBOLD',
+          decimals: 18,
+          asset: {
+            address: '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8',
+            name: 'yBOLD',
+            symbol: 'yBOLD',
+            decimals: '18',
+          },
+          apy: {
+            net: 0.04639864387148984,
+          },
+          tvl: { close: 1 },
+          performance: {
+            historical: { net: 0.04639864387148984 },
+            oracle: {
+              apy: 0.0355,
+              apr: 0.0349,
+            },
+          },
+        }),
+      } as Response
+    })
+
+    global.fetch = fetchMock as typeof fetch
+
+    const apr = await fetchYBoldApr(
+      '1',
+      '0x23346B04a7f55b8760E5860AA5A77383D63491cD'
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(apr).toEqual({
+      estimatedAPY: 0.0355,
+      historicalAPY: 0.04639864387148984,
+    })
+  })
+
+  test('falls back to yDaemon APR values for yBOLD when Kong is unavailable', async () => {
+    delete process.env.KONG_REST_URL
+    delete process.env.YDAEMON_BASE_URI
+
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
+      const url = String(input)
+
+      if (url === 'https://kong.yearn.fi/api/rest/snapshot/1/0x23346B04a7f55b8760E5860AA5A77383D63491cD') {
+        return {
+          ok: false,
+          status: 403,
+        } as Response
+      }
+
+      if (url === 'https://ydaemon.yearn.fi/1/vaults/0x23346B04a7f55b8760E5860AA5A77383D63491cD') {
+        return {
+          ok: true,
+          json: async () => ({
+            address: '0x23346B04a7f55b8760E5860AA5A77383D63491cD',
+            chainID: 1,
+            name: 'Staked yBOLD',
+            token: {
+              address: '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8',
+              name: 'yBOLD',
+              symbol: 'yBOLD',
+              decimals: 18,
+            },
+            apr: {
+              netAPR: 0.04639864387148984,
+              points: {
+                weekAgo: 0.0549088591759741,
+                monthAgo: 0.04639864387148984,
+              },
+              extra: {},
+              forwardAPR: {
+                netAPR: null,
+              },
+            },
+          }),
+        } as Response
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    global.fetch = fetchMock as typeof fetch
+
+    const apr = await fetchYBoldApr(
+      '1',
+      '0x23346B04a7f55b8760E5860AA5A77383D63491cD'
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(apr).toEqual({
+      estimatedAPY: 0.04639864387148984,
+      historicalAPY: 0.04639864387148984,
+    })
   })
 })

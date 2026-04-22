@@ -25,6 +25,22 @@ function getYDaemonBaseUrl(): string {
   return (process.env.YDAEMON_BASE_URI || DEFAULT_YDAEMON_BASE_URL).replace(/\/$/, '')
 }
 
+async function fetchKongVaultSnapshot(
+  chainID: string,
+  address: string
+): Promise<any | null> {
+  const kongBaseUrl = getKongRestBaseUrl()
+  return fetchJson(`${kongBaseUrl}/snapshot/${chainID}/${address}`)
+}
+
+async function fetchYDaemonVault(
+  chainID: string,
+  address: string
+): Promise<any | null> {
+  const yDaemonBaseUrl = getYDaemonBaseUrl()
+  return fetchJson(`${yDaemonBaseUrl}/${chainID}/vaults/${address}`)
+}
+
 async function fetchJson(
   url: string,
   headers?: Record<string, string>
@@ -84,6 +100,7 @@ export function normalizeKongVaultSnapshot(snapshot: any): any | null {
 
   const forwardNetAPR = isKatanaVault
     ? pickNumber(
+        oracle?.netAPY,
         oracle?.apy,
         oracle?.apr,
         estimated?.apy,
@@ -93,6 +110,7 @@ export function normalizeKongVaultSnapshot(snapshot: any): any | null {
     : pickNumber(
         estimated?.apy,
         estimated?.apr,
+        oracle?.netAPY,
         oracle?.apy,
         oracle?.apr,
         historical?.net
@@ -115,7 +133,10 @@ export function normalizeKongVaultSnapshot(snapshot: any): any | null {
       type:
         snapshot.apy?.label ||
         estimated?.type ||
-        (oracle?.apy !== null && oracle?.apy !== undefined ? 'oracle' : 'unknown'),
+        ((oracle?.netAPY !== null && oracle?.netAPY !== undefined) ||
+        (oracle?.apy !== null && oracle?.apy !== undefined)
+          ? 'oracle'
+          : 'unknown'),
       netAPR: pickNumber(snapshot.apy?.net, historical?.net),
       extra: {
         stakingRewardsAPR: 0,
@@ -152,13 +173,11 @@ export function normalizeKongVaultSnapshot(snapshot: any): any | null {
 }
 
 export async function fetchVaultData(chainID: string, address: string) {
-  const kongBaseUrl = getKongRestBaseUrl()
-  const snapshot = await fetchJson(`${kongBaseUrl}/snapshot/${chainID}/${address}`)
+  const snapshot = await fetchKongVaultSnapshot(chainID, address)
   const normalizedSnapshot = normalizeKongVaultSnapshot(snapshot)
   if (normalizedSnapshot) return normalizedSnapshot
 
-  const yDaemonBaseUrl = getYDaemonBaseUrl()
-  const vault = await fetchJson(`${yDaemonBaseUrl}/${chainID}/vaults/${address}`)
+  const vault = await fetchYDaemonVault(chainID, address)
   return normalizeYDaemonVault(vault)
 }
 
@@ -182,7 +201,25 @@ export async function fetchYBoldApr(
   stakingAddress: string
 ): Promise<{ estimatedAPY: number; historicalAPY: number } | null> {
   if (chainID !== '1') return null
-  const st = await fetchVaultData(chainID, stakingAddress)
+
+  const stakingSnapshot = await fetchKongVaultSnapshot(chainID, stakingAddress)
+  const normalizedStakingSnapshot = normalizeKongVaultSnapshot(stakingSnapshot)
+  if (normalizedStakingSnapshot?.apr) {
+    const estimatedAPY =
+      toFiniteNumber(stakingSnapshot?.performance?.oracle?.netAPY) ??
+      toFiniteNumber(stakingSnapshot?.performance?.oracle?.apy) ??
+      toFiniteNumber(stakingSnapshot?.performance?.oracle?.apr) ??
+      toFiniteNumber(normalizedStakingSnapshot.apr.forwardAPR?.netAPR) ??
+      toFiniteNumber(normalizedStakingSnapshot.apr.netAPR) ??
+      0
+
+    return {
+      estimatedAPY,
+      historicalAPY: normalizedStakingSnapshot.apr.netAPR || 0,
+    }
+  }
+
+  const st = normalizeYDaemonVault(await fetchYDaemonVault(chainID, stakingAddress))
   if (!st?.apr) return null
   return {
     estimatedAPY: st.apr.forwardAPR?.netAPR || st.apr.netAPR || 0,
