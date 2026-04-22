@@ -1,3 +1,30 @@
+const DEFAULT_KONG_REST_URL = 'https://kong.yearn.fi/api/rest'
+const DEFAULT_YDAEMON_BASE_URL = 'https://ydaemon.yearn.fi'
+
+function toFiniteNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined
+  const parsed = typeof value === 'string' ? Number(value) : value
+  return typeof parsed === 'number' && Number.isFinite(parsed)
+    ? parsed
+    : undefined
+}
+
+function pickNumber(...values: unknown[]): number {
+  for (const value of values) {
+    const parsed = toFiniteNumber(value)
+    if (typeof parsed === 'number') return parsed
+  }
+  return 0
+}
+
+function getKongRestBaseUrl(): string {
+  return (process.env.KONG_REST_URL || DEFAULT_KONG_REST_URL).replace(/\/$/, '')
+}
+
+function getYDaemonBaseUrl(): string {
+  return (process.env.YDAEMON_BASE_URI || DEFAULT_YDAEMON_BASE_URL).replace(/\/$/, '')
+}
+
 async function fetchJson(
   url: string,
   headers?: Record<string, string>
@@ -17,12 +44,122 @@ async function fetchJson(
   }
 }
 
+function normalizeYDaemonVault(vault: any): any | null {
+  if (!vault?.address) return null
+
+  const chainID = pickNumber(vault.chainID, vault.chainId)
+  if (!chainID) return null
+
+  return {
+    ...vault,
+    chainID,
+    token: vault.token
+      ? {
+          ...vault.token,
+          decimals: pickNumber(vault.token.decimals, vault.decimals, 18),
+        }
+      : {
+          address: vault.address,
+          name: vault.name || 'Vault Token',
+          symbol: vault.symbol || '',
+          decimals: pickNumber(vault.decimals, 18),
+        },
+  }
+}
+
+export function normalizeKongVaultSnapshot(snapshot: any): any | null {
+  if (!snapshot?.address || !snapshot?.chainId) return null
+
+  const asset = snapshot.asset
+  const historical = snapshot.performance?.historical
+  const oracle = snapshot.performance?.oracle
+  const estimated = snapshot.performance?.estimated
+  const estimatedComponents = estimated?.components
+  const isKatanaVault = snapshot.chainId === 747474
+
+  const fixedRateKatanaRewards =
+    toFiniteNumber(estimatedComponents?.fixedRateKatanaRewards) ??
+    toFiniteNumber(estimatedComponents?.FixedRateKatanaRewards) ??
+    0
+
+  const forwardNetAPR = isKatanaVault
+    ? pickNumber(
+        oracle?.apy,
+        oracle?.apr,
+        estimated?.apy,
+        estimated?.apr,
+        historical?.net
+      )
+    : pickNumber(
+        estimated?.apy,
+        estimated?.apr,
+        oracle?.apy,
+        oracle?.apr,
+        historical?.net
+      )
+
+  return {
+    address: snapshot.address,
+    chainID: snapshot.chainId,
+    name: snapshot.name || snapshot.meta?.name || snapshot.meta?.displayName || '',
+    token: {
+      address: asset?.address || snapshot.address,
+      name: asset?.name || snapshot.name || 'Vault Token',
+      symbol: asset?.symbol || snapshot.symbol || '',
+      decimals: pickNumber(asset?.decimals, snapshot.decimals, 18),
+    },
+    tvl: {
+      tvl: pickNumber(snapshot.tvl?.close),
+    },
+    apr: {
+      type:
+        snapshot.apy?.label ||
+        estimated?.type ||
+        (oracle?.apy !== null && oracle?.apy !== undefined ? 'oracle' : 'unknown'),
+      netAPR: pickNumber(snapshot.apy?.net, historical?.net),
+      extra: {
+        stakingRewardsAPR: 0,
+        gammaRewardAPR: 0,
+        katanaBonusAPY: pickNumber(estimatedComponents?.katanaBonusAPY),
+        katanaAppRewardsAPR: pickNumber(estimatedComponents?.katanaAppRewardsAPR),
+        steerPointsPerDollar: pickNumber(estimatedComponents?.steerPointsPerDollar),
+        fixedRateKatanaRewards,
+      },
+      points: {
+        weekAgo: pickNumber(snapshot.apy?.weeklyNet, historical?.weeklyNet),
+        monthAgo: pickNumber(snapshot.apy?.monthlyNet, historical?.monthlyNet),
+        inception: pickNumber(snapshot.apy?.inceptionNet, historical?.inceptionNet),
+      },
+      forwardAPR: {
+        type: estimated ? 'estimated' : oracle ? 'oracle' : '',
+        netAPR: forwardNetAPR,
+        composite: {
+          boost: 0,
+          poolAPY: 0,
+          boostedAPR: 0,
+          baseAPR: 0,
+          cvxAPR: 0,
+          rewardsAPR: 0,
+          v3OracleCurrentAPR: 0,
+          v3OracleStratRatioAPR: 0,
+          keepCRV: 0,
+          keepVELO: 0,
+          cvxKeepCRV: 0,
+        },
+      },
+    },
+  }
+}
+
 export async function fetchVaultData(chainID: string, address: string) {
-  const baseUri = process.env.YDAEMON_BASE_URI
-  if (!baseUri || !baseUri.startsWith('https://')) return null
-  return fetchJson(
-    `${baseUri}/${chainID}/vault/${address}?strategiesDetails=withDetails&strategiesCondition=inQueue`
-  )
+  const kongBaseUrl = getKongRestBaseUrl()
+  const snapshot = await fetchJson(`${kongBaseUrl}/snapshot/${chainID}/${address}`)
+  const normalizedSnapshot = normalizeKongVaultSnapshot(snapshot)
+  if (normalizedSnapshot) return normalizedSnapshot
+
+  const yDaemonBaseUrl = getYDaemonBaseUrl()
+  const vault = await fetchJson(`${yDaemonBaseUrl}/${chainID}/vaults/${address}`)
+  return normalizeYDaemonVault(vault)
 }
 
 export async function fetchKatanaAprs(): Promise<any | null> {
@@ -45,11 +182,7 @@ export async function fetchYBoldApr(
   stakingAddress: string
 ): Promise<{ estimatedAPY: number; historicalAPY: number } | null> {
   if (chainID !== '1') return null
-  const baseUri = process.env.YDAEMON_BASE_URI
-  if (!baseUri || !baseUri.startsWith('https://')) return null
-  const st = await fetchJson(
-    `${baseUri}/${chainID}/vault/${stakingAddress}?strategiesDetails=withDetails&strategiesCondition=inQueue`
-  )
+  const st = await fetchVaultData(chainID, stakingAddress)
   if (!st?.apr) return null
   return {
     estimatedAPY: st.apr.forwardAPR?.netAPR || st.apr.netAPR || 0,

@@ -1,4 +1,6 @@
 export const ALLOWED_CHAIN_IDS = [1, 10, 137, 250, 8453, 42161, 747474]
+export const DEFAULT_YEARN_ASSETS_URI =
+  'https://cdn.jsdelivr.net/gh/yearn/tokenassets@main'
 export const YBOLD_VAULT_ADDRESS = '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8'
 export const YBOLD_STAKING_ADDRESS =
   '0x23346B04a7f55b8760E5860AA5A77383D63491cD'
@@ -63,4 +65,40 @@ export function formatUSD(amount: number): string {
   if (amount < 1e9) return `$${(amount / 1e6).toFixed(2)}M`
   if (amount < 1e12) return `$${(amount / 1e9).toFixed(2)}B`
   return `$${(amount / 1e12).toFixed(1)}T`
+}
+
+export function normalizeYearnAssetsBaseUrl(
+  baseUrl = process.env.BASE_YEARN_ASSETS_URI
+): string {
+  const trimmed = baseUrl?.trim()
+  if (!trimmed) return DEFAULT_YEARN_ASSETS_URI
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`
+
+  try {
+    const parsed = new URL(withProtocol)
+    if (parsed.hostname === 'cdn.jsdelivr.net' && parsed.pathname === '/') {
+      return DEFAULT_YEARN_ASSETS_URI
+    }
+    return parsed.toString().replace(/\/$/, '')
+  } catch {
+    return DEFAULT_YEARN_ASSETS_URI
+  }
+}
+
+export function getYearnTokenLogoUrl(
+  chainID: string | number,
+  address: string,
+  baseUrl = process.env.BASE_YEARN_ASSETS_URI
+): string {
+  const normalizedBaseUrl = normalizeYearnAssetsBaseUrl(baseUrl)
+  const tokenBaseUrl = /\/tokens?$/.test(normalizedBaseUrl)
+    ? normalizedBaseUrl
+    : `${normalizedBaseUrl}/tokens`
+
+  return `${tokenBaseUrl}/${chainID}/${toComparableEthereumAddress(
+    address
+  )}/logo-128.png`
 }

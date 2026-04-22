@@ -72,9 +72,11 @@ export function renderVaultOG(
     icon: string
     name: string
     estimatedApy: string
+    estimatedApyBreakdown?: string
     rewardsAPR?: string
     minBoost?: string
     historicalApy: string
+    historicalApyBreakdown?: string
     tvlUsd: string
     chainName: string
     address: string
@@ -92,6 +94,13 @@ export function renderVaultOG(
     6,
   )}...${data.address.slice(-4)}`
   const earnWithYearnText = brand.cta
+  const hasInlineApyBreakdown = Boolean(
+    data.estimatedApyBreakdown || data.historicalApyBreakdown,
+  )
+  const metricsWidth = hasInlineApyBreakdown ? 760 : 500
+  const metricLabelWidth = 250
+  const metricMainValueWidth = 170
+  const metricBreakdownWidth = hasInlineApyBreakdown ? 300 : 0
   return new ImageResponse(
     <div
       style={{
@@ -221,7 +230,7 @@ export function renderVaultOG(
               {/* Metrics */}
               <div
                 style={{
-                  width: 500,
+                  width: metricsWidth,
                   flexDirection: 'column',
                   justifyContent: 'flex-start',
                   alignItems: 'flex-start',
@@ -232,9 +241,12 @@ export function renderVaultOG(
                 <div
                   style={{
                     alignSelf: 'stretch',
-                    justifyContent: 'space-between',
+                    justifyContent: hasInlineApyBreakdown
+                      ? 'flex-start'
+                      : 'space-between',
                     alignItems: 'center',
                     display: 'flex',
+                    gap: hasInlineApyBreakdown ? 20 : 0,
                   }}
                 >
                   <div
@@ -243,6 +255,9 @@ export function renderVaultOG(
                       flexDirection: 'column',
                       alignItems: 'flex-start',
                       marginTop: data.rewardsAPR ? '20px' : '0px',
+                      ...(hasInlineApyBreakdown
+                        ? { width: metricLabelWidth, flexShrink: 0 }
+                        : {}),
                     }}
                   >
                     <div
@@ -280,21 +295,54 @@ export function renderVaultOG(
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: 'flex-end',
+                      alignItems: hasInlineApyBreakdown ? 'flex-start' : 'flex-end',
                       marginTop: data.rewardsAPR ? '10px' : '0px',
+                      ...(!hasInlineApyBreakdown ? { flex: '1 1 0' } : {}),
                     }}
                   >
                     <div
                       style={{
-                        textAlign: 'right',
-                        color: 'white',
-                        fontSize: 48,
-                        fontFamily: 'Aeonik',
-                        fontWeight: '700',
-                        wordWrap: 'break-word',
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        justifyContent: hasInlineApyBreakdown
+                          ? 'flex-start'
+                          : 'flex-end',
+                        gap: 14,
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {data.estimatedApy}
+                      <div
+                        style={{
+                          textAlign: 'right',
+                          color: 'white',
+                          fontSize: 48,
+                          fontFamily: 'Aeonik',
+                          fontWeight: '700',
+                          wordWrap: 'break-word',
+                          ...(hasInlineApyBreakdown
+                            ? { width: metricMainValueWidth, flexShrink: 0 }
+                            : {}),
+                        }}
+                      >
+                        {data.estimatedApy}
+                      </div>
+                      {data.estimatedApyBreakdown && (
+                        <div
+                          style={{
+                            textAlign: 'right',
+                            color: 'rgba(255, 255, 255, 0.82)',
+                            fontSize: 22,
+                            fontFamily: 'Aeonik',
+                            fontWeight: '400',
+                            whiteSpace: 'nowrap',
+                            marginBottom: 6,
+                            width: metricBreakdownWidth,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {data.estimatedApyBreakdown}
+                        </div>
+                      )}
                     </div>
                     {data.rewardsAPR && (
                       <div
@@ -338,9 +386,12 @@ export function renderVaultOG(
                 <div
                   style={{
                     alignSelf: 'stretch',
-                    justifyContent: 'space-between',
+                    justifyContent: hasInlineApyBreakdown
+                      ? 'flex-start'
+                      : 'space-between',
                     alignItems: 'center',
                     display: 'flex',
+                    gap: hasInlineApyBreakdown ? 20 : 0,
                   }}
                 >
                   <div
@@ -351,31 +402,68 @@ export function renderVaultOG(
                       fontFamily: 'Aeonik',
                       fontWeight: '300',
                       wordWrap: 'break-word',
+                      ...(hasInlineApyBreakdown
+                        ? { width: metricLabelWidth, flexShrink: 0 }
+                        : {}),
                     }}
                   >
                     30-Day APY:
                   </div>
                   <div
                     style={{
-                      alignSelf: 'stretch',
-                      textAlign: 'right',
-                      color: 'white',
-                      fontSize: 32,
-                      fontFamily: 'Aeonik',
-                      fontWeight: '300',
-                      wordWrap: 'break-word',
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: hasInlineApyBreakdown
+                        ? 'flex-start'
+                        : 'flex-end',
+                      gap: 12,
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {data.historicalApy}
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        color: 'white',
+                        fontSize: 32,
+                        fontFamily: 'Aeonik',
+                        fontWeight: '300',
+                        wordWrap: 'break-word',
+                        ...(hasInlineApyBreakdown
+                          ? { width: metricMainValueWidth, flexShrink: 0 }
+                          : {}),
+                      }}
+                    >
+                      {data.historicalApy}
+                    </div>
+                    {data.historicalApyBreakdown && (
+                      <div
+                        style={{
+                          textAlign: 'right',
+                          color: 'rgba(255, 255, 255, 0.82)',
+                          fontSize: 22,
+                          fontFamily: 'Aeonik',
+                          fontWeight: '400',
+                          whiteSpace: 'nowrap',
+                          marginBottom: 3,
+                          width: metricBreakdownWidth,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {data.historicalApyBreakdown}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div
                   style={{
                     alignSelf: 'stretch',
-                    justifyContent: 'space-between',
+                    justifyContent: hasInlineApyBreakdown
+                      ? 'flex-start'
+                      : 'space-between',
                     alignItems: 'center',
                     display: 'flex',
+                    gap: hasInlineApyBreakdown ? 20 : 0,
                   }}
                 >
                   <div
@@ -386,31 +474,46 @@ export function renderVaultOG(
                       fontFamily: 'Aeonik',
                       fontWeight: '300',
                       wordWrap: 'break-word',
+                      ...(hasInlineApyBreakdown
+                        ? { width: metricLabelWidth, flexShrink: 0 }
+                        : {}),
                     }}
                   >
                     Vault TVL:
                   </div>
                   <div
                     style={{
-                      flexDirection: 'column',
-                      justifyContent: 'flex-end',
-                      alignItems: 'flex-end',
                       display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: hasInlineApyBreakdown
+                        ? 'flex-start'
+                        : 'flex-end',
+                      gap: 12,
                     }}
                   >
                     <div
                       style={{
-                        alignSelf: 'stretch',
                         textAlign: 'right',
                         color: 'white',
                         fontSize: 32,
                         fontFamily: 'Aeonik',
                         fontWeight: '300',
                         wordWrap: 'break-word',
+                        ...(hasInlineApyBreakdown
+                          ? { width: metricMainValueWidth, flexShrink: 0 }
+                          : {}),
                       }}
                     >
                       {data.tvlUsd}
                     </div>
+                    {hasInlineApyBreakdown && (
+                      <div
+                        style={{
+                          width: metricBreakdownWidth,
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
