@@ -1,13 +1,7 @@
+import { toFiniteNumber } from './number'
+
 const DEFAULT_KONG_REST_URL = 'https://kong.yearn.fi/api/rest'
 const DEFAULT_YDAEMON_BASE_URL = 'https://ydaemon.yearn.fi'
-
-function toFiniteNumber(value: unknown): number | undefined {
-  if (value === null || value === undefined || value === '') return undefined
-  const parsed = typeof value === 'string' ? Number(value) : value
-  return typeof parsed === 'number' && Number.isFinite(parsed)
-    ? parsed
-    : undefined
-}
 
 function pickNumber(...values: unknown[]): number {
   for (const value of values) {

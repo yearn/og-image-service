@@ -1,4 +1,5 @@
 import { YBOLD_VAULT_ADDRESS } from './data'
+import { toFiniteNumber } from './number'
 
 const KATANA_CHAIN_ID = 747474
 
@@ -10,14 +11,6 @@ type KatanaRewardAprData = {
 export type KatanaApyBreakdown = {
   native: number
   kat: number
-}
-
-function toFiniteNumber(value: unknown): number | undefined {
-  if (value === null || value === undefined || value === '') return undefined
-  const parsed = typeof value === 'string' ? Number(value) : value
-  return typeof parsed === 'number' && Number.isFinite(parsed)
-    ? parsed
-    : undefined
 }
 
 function getKatanaRecordForVault(vault: any, katanaAprs: any | undefined): any {

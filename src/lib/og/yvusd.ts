@@ -7,6 +7,7 @@ import {
   YVUSD_UNLOCKED_ADDRESS,
 } from './data'
 import { fetchVaultData, fetchYvUsdAprs } from './fetchers'
+import { toFiniteNumber } from './number'
 
 type YvUsdAprServiceVault = {
   address?: string
@@ -42,15 +43,7 @@ export type YvUsdOGData = {
   address: string
 }
 
-function toFiniteNumber(
-  value: number | string | null | undefined,
-): number | null {
-  if (value === null || value === undefined) return null
-  const parsed = typeof value === 'string' ? Number(value) : value
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-function toNonNegativeNumber(value: number | null | undefined): number {
+function toNonNegativeNumber(value: number | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0)
     return 0
   return value
