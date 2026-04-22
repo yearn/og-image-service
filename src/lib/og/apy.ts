@@ -1,16 +1,123 @@
 import { YBOLD_VAULT_ADDRESS } from './data'
+import { toFiniteNumber } from './number'
 
-export function calculateKatanaAPY(extra: Record<string, number>): number {
-  const {
-    katanaRewardsAPR: _legacy,
-    katanaBonusAPY: _bonus,
-    steerPointsPerDollar: _points,
-    ...rest
-  } = extra || {}
-  return Object.values(rest).reduce(
-    (s, v) => s + (typeof v === 'number' ? v : 0),
-    0
+const KATANA_CHAIN_ID = 747474
+
+type KatanaRewardAprData = {
+  katanaAppRewardsAPR?: number
+  fixedRateKatanaRewards?: number
+}
+
+export type KatanaApyBreakdown = {
+  native: number
+  kat: number
+}
+
+function getKatanaRecordForVault(vault: any, katanaAprs: any | undefined): any {
+  if (!vault?.address || !katanaAprs) return undefined
+
+  const normalized = vault.address.toLowerCase().replace(/^0x/, '')
+  const withPrefix = `0x${normalized}`
+
+  return (
+    katanaAprs[normalized] ||
+    katanaAprs[withPrefix] ||
+    katanaAprs[vault.address] ||
+    katanaAprs[vault.address.toLowerCase()]
   )
+}
+
+export function getKatanaRewardAprData(
+  record: any
+): KatanaRewardAprData | undefined {
+  const extra = record?.apr?.extra
+  if (!extra) return undefined
+
+  const katanaAppRewardsAPR =
+    toFiniteNumber(extra.katanaAppRewardsAPR) ??
+    toFiniteNumber(extra.katanaRewardsAPR)
+  const fixedRateKatanaRewards =
+    toFiniteNumber(extra.fixedRateKatanaRewards) ??
+    toFiniteNumber(extra.FixedRateKatanaRewards)
+
+  if (
+    katanaAppRewardsAPR === undefined &&
+    fixedRateKatanaRewards === undefined
+  ) {
+    return undefined
+  }
+
+  return {
+    katanaAppRewardsAPR,
+    fixedRateKatanaRewards,
+  }
+}
+
+export function hasKatanaRewardAprData(record: any): boolean {
+  return getKatanaRewardAprData(record) !== undefined
+}
+
+function getKatanaRewardAprDataForVault(
+  vault: any,
+  katanaAprs: any | undefined
+): KatanaRewardAprData | undefined {
+  return (
+    getKatanaRewardAprData(vault) ??
+    getKatanaRewardAprData(getKatanaRecordForVault(vault, katanaAprs))
+  )
+}
+
+function calculateKatanaRewardApr(
+  data: KatanaRewardAprData | undefined
+): number {
+  return (data?.katanaAppRewardsAPR || 0) + (data?.fixedRateKatanaRewards || 0)
+}
+
+function getHistoricalBaseAPY(vault: any): number | undefined {
+  if (!vault?.apr?.points) return undefined
+
+  const monthly = toFiniteNumber(vault.apr.points.monthAgo)
+  if (typeof monthly === 'number' && monthly > 0) return monthly
+
+  const weekly = toFiniteNumber(vault.apr.points.weekAgo)
+  if (typeof weekly === 'number') return weekly
+
+  return monthly
+}
+
+export function getKatanaEstimatedApyBreakdown(
+  vault: any,
+  katanaAprs: any | undefined
+): KatanaApyBreakdown | undefined {
+  if (vault?.chainID !== KATANA_CHAIN_ID) return undefined
+
+  const katanaRewardAprData = getKatanaRewardAprDataForVault(vault, katanaAprs)
+  if (!katanaRewardAprData) return undefined
+
+  return {
+    native:
+      toFiniteNumber(vault.apr?.forwardAPR?.netAPR) ??
+      toFiniteNumber(vault.apr?.netAPR) ??
+      0,
+    kat: calculateKatanaRewardApr(katanaRewardAprData),
+  }
+}
+
+export function getKatanaHistoricalApyBreakdown(
+  vault: any,
+  katanaAprs: any | undefined
+): KatanaApyBreakdown | undefined {
+  if (vault?.chainID !== KATANA_CHAIN_ID) return undefined
+
+  const katanaRewardAprData = getKatanaRewardAprDataForVault(vault, katanaAprs)
+  const native = getHistoricalBaseAPY(vault)
+
+  if (!katanaRewardAprData || typeof native !== 'number') return undefined
+
+  return {
+    native,
+    kat: calculateKatanaRewardApr(katanaRewardAprData),
+  }
 }
 
 export function calculateEstimatedAPY(
@@ -26,15 +133,9 @@ export function calculateEstimatedAPY(
   )
     return [yBoldApr.estimatedAPY || 0, undefined]
 
-  if (vault.chainID === 747474 && katanaAprs) {
-    const normalized = vault.address.toLowerCase().replace('0x', '')
-    const withPrefix = `0x${normalized}`
-    const extra =
-      katanaAprs[normalized]?.apr?.extra ||
-      katanaAprs[withPrefix]?.apr?.extra ||
-      katanaAprs[vault.address]?.apr?.extra
-    const katAPY = extra ? calculateKatanaAPY(extra) : 0
-    return [katAPY > 0 ? katAPY : 0, undefined]
+  const katanaEstimatedBreakdown = getKatanaEstimatedApyBreakdown(vault, katanaAprs)
+  if (katanaEstimatedBreakdown) {
+    return [katanaEstimatedBreakdown.native + katanaEstimatedBreakdown.kat, undefined]
   }
 
   const sumRewards =
@@ -48,6 +149,7 @@ export function calculateEstimatedAPY(
 
 export function calculateHistoricalAPY(
   vault: any,
+  katanaAprs: any | undefined,
   yBoldApr: { historicalAPY: number } | null
 ): number {
   if (
@@ -55,9 +157,11 @@ export function calculateHistoricalAPY(
     yBoldApr
   )
     return yBoldApr.historicalAPY
-  if (vault.chainID === 747474) return -1
-  if (!vault?.apr?.points) return 0
-  const monthly = vault.apr.points.monthAgo || 0
-  const weekly = vault.apr.points.weekAgo || 0
-  return monthly > 0 ? monthly : weekly
+
+  const katanaHistoricalBreakdown = getKatanaHistoricalApyBreakdown(vault, katanaAprs)
+  if (katanaHistoricalBreakdown) {
+    return katanaHistoricalBreakdown.native + katanaHistoricalBreakdown.kat
+  }
+
+  return getHistoricalBaseAPY(vault) || 0
 }
