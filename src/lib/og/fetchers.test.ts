@@ -310,7 +310,7 @@ describe('Kong vault snapshot normalization', () => {
     expect(vault?.tvl?.tvl).toBe(18806547.346547082)
   })
 
-  test('prefers the ysYBOLD staking snapshot oracle netAPY for yBOLD estimated APY', async () => {
+  test('uses the ysYBOLD staking snapshot 7-day historical APY for yBOLD estimated APY', async () => {
     delete process.env.KONG_REST_URL
 
     const fetchMock = mock(async (input: RequestInfo | URL) => {
@@ -334,10 +334,14 @@ describe('Kong vault snapshot normalization', () => {
           },
           apy: {
             net: 0.04639864387148984,
+            weeklyNet: 0.0549088591759741,
           },
           tvl: { close: 1 },
           performance: {
-            historical: { net: 0.04639864387148984 },
+            historical: {
+              net: 0.04639864387148984,
+              weeklyNet: 0.0549088591759741,
+            },
             oracle: {
               netAPY: 0.0344,
               apy: 0.0355,
@@ -357,12 +361,12 @@ describe('Kong vault snapshot normalization', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(apr).toEqual({
-      estimatedAPY: 0.0344,
+      estimatedAPY: 0.0549088591759741,
       historicalAPY: 0.04639864387148984,
     })
   })
 
-  test('falls back to the ysYBOLD staking snapshot oracle APY when netAPY is unavailable', async () => {
+  test('uses performance historical weekly APY when the top-level weekly value is unavailable', async () => {
     delete process.env.KONG_REST_URL
 
     const fetchMock = mock(async (input: RequestInfo | URL) => {
@@ -389,7 +393,10 @@ describe('Kong vault snapshot normalization', () => {
           },
           tvl: { close: 1 },
           performance: {
-            historical: { net: 0.04639864387148984 },
+            historical: {
+              net: 0.04639864387148984,
+              weeklyNet: 0.0512,
+            },
             oracle: {
               apy: 0.0355,
               apr: 0.0349,
@@ -408,7 +415,7 @@ describe('Kong vault snapshot normalization', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(apr).toEqual({
-      estimatedAPY: 0.0355,
+      estimatedAPY: 0.0512,
       historicalAPY: 0.04639864387148984,
     })
   })
@@ -467,7 +474,7 @@ describe('Kong vault snapshot normalization', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(apr).toEqual({
-      estimatedAPY: 0.04639864387148984,
+      estimatedAPY: 0.0549088591759741,
       historicalAPY: 0.04639864387148984,
     })
   })

@@ -215,10 +215,8 @@ export async function fetchYBoldApr(
   const normalizedStakingSnapshot = normalizeKongVaultSnapshot(stakingSnapshot)
   if (normalizedStakingSnapshot?.apr) {
     const estimatedAPY =
-      toFiniteNumber(stakingSnapshot?.performance?.oracle?.netAPY) ??
-      toFiniteNumber(stakingSnapshot?.performance?.oracle?.apy) ??
-      toFiniteNumber(stakingSnapshot?.performance?.oracle?.apr) ??
-      toFiniteNumber(normalizedStakingSnapshot.apr.forwardAPR?.netAPR) ??
+      toFiniteNumber(stakingSnapshot?.apy?.weeklyNet) ??
+      toFiniteNumber(stakingSnapshot?.performance?.historical?.weeklyNet) ??
       toFiniteNumber(normalizedStakingSnapshot.apr.netAPR) ??
       0
 
@@ -231,7 +229,10 @@ export async function fetchYBoldApr(
   const st = normalizeYDaemonVault(await fetchYDaemonVault(chainID, stakingAddress))
   if (!st?.apr) return null
   return {
-    estimatedAPY: st.apr.forwardAPR?.netAPR || st.apr.netAPR || 0,
+    estimatedAPY:
+      toFiniteNumber(st.apr.points?.weekAgo) ??
+      toFiniteNumber(st.apr.netAPR) ??
+      0,
     historicalAPY: st.apr.netAPR || 0,
   }
 }
