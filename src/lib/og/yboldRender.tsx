@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { TypeMarkYearnNaughty } from '@lib/icons/TypeMarkYearn-naughty'
 import { ImageResponse } from 'next/og'
 
@@ -26,13 +25,9 @@ export function renderYBoldOG(
     aeonikRegular: ArrayBuffer
     aeonikBold: ArrayBuffer
     aeonikMono: ArrayBuffer
-  },
-  opts?: { origin?: string; protocol?: 'http' | 'https' },
+  }
 ) {
   const addressLabel = `${data.address.slice(0, 6)}...${data.address.slice(-4)}`
-  const assetOrigin = opts?.origin || 'yearn.fi'
-  const assetProtocol = opts?.protocol || 'https'
-  const yBoldIcon = `${assetProtocol}://${assetOrigin}/graphics/ybold.svg`
 
   return new ImageResponse(
     <div
@@ -117,13 +112,19 @@ export function renderYBoldOG(
               gap: 22,
             }}
           >
-            <img
-              src={yBoldIcon}
-              alt="yBOLD"
+            <svg
               width="88"
               height="88"
-              style={{ borderRadius: 88 }}
-            />
+              viewBox="0 0 128 128"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="64.17" cy="64.02" r="61.57" fill="#0675F9" />
+              <path
+                d="M106.66 67.95c4.52 13.59-2.84 28.27-16.42 32.79-13.59 4.52-28.27-2.84-32.79-16.42-4.52-13.59 2.84-28.27 16.42-32.79 13.59-4.52 28.27 2.84 32.79 16.42ZM71.07 22.13l-22.29-.34-1.25 80.85 22.29.34 1.25-80.85ZM29.56 31.12 14.17 46.83l34.19 33.5.33-29.45-19.13-19.76Z"
+                fill="#FFFEFC"
+              />
+            </svg>
             <div
               style={{
                 color: COLORS.navy,

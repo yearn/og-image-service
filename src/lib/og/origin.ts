@@ -1,5 +1,34 @@
 import type { NextRequest } from 'next/server'
 
+const DEFAULT_PUBLIC_ASSET_ORIGIN = 'https://og.yearn.fi'
+
+function normalizePublicAssetOrigin(value: string | undefined): string | null {
+  const candidate = value?.trim()
+  if (!candidate) return null
+
+  try {
+    const parsed = new URL(candidate)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return parsed.toString().replace(/\/+$/, '')
+  } catch {
+    return null
+  }
+}
+
+export function resolvePublicAssetBaseUrl(
+  origin: string,
+  protocol: 'http' | 'https'
+): string {
+  const configuredOrigin = normalizePublicAssetOrigin(
+    process.env.OG_ASSET_ORIGIN
+  )
+  if (configuredOrigin) return configuredOrigin
+
+  if (origin.endsWith('.vercel.app')) return DEFAULT_PUBLIC_ASSET_ORIGIN
+
+  return `${protocol}://${origin}`
+}
+
 export function resolveOrigin(req: NextRequest): {
   origin: string
   protocol: 'http' | 'https'

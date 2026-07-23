@@ -19,7 +19,8 @@ A Vercel-ready microservice to generate Open Graph (OG) social images for Yearn 
 - `KATANA_APR_SERVICE_API` optional Katana APR fallback when Kong snapshots do not include Katana reward fields
 - `YDAEMON_BASE_URI` optional override for the yDaemon base URL used for vault data
 - `YVUSD_APR_SERVICE_API` optional for yvUSD APR overlay; defaults to `https://yearn-yvusd-apr-service.vercel.app/api/aprs`
-- `ALLOWED_HOSTS` optional comma list for font origin resolution (defaults to yearn.fi and localhost)
+- `OG_ASSET_ORIGIN` optional public host for OG fonts and background assets; protected Vercel previews default to `https://og.yearn.fi`
+- `ALLOWED_HOSTS` optional comma list for request-origin resolution (defaults to yearn.fi and localhost)
 
 ## Run locally
 

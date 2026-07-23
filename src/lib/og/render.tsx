@@ -1,14 +1,16 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from 'next/og'
 import { BrandConfig } from './brands'
+import { resolvePublicAssetBaseUrl } from './origin'
 import { renderYBoldOG } from './yboldRender'
 
 export async function loadFonts(origin: string, protocol: 'http' | 'https') {
   let aeonikRegular: ArrayBuffer,
     aeonikBold: ArrayBuffer,
     aeonikMono: ArrayBuffer
+  const assetBaseUrl = resolvePublicAssetBaseUrl(origin, protocol)
   const fetchFont = async (name: string) => {
-    const res = await fetch(`${protocol}://${origin}/fonts/${name}`)
+    const res = await fetch(`${assetBaseUrl}/fonts/${name}`)
     if (!res.ok) throw new Error(name)
     return res.arrayBuffer()
   }
@@ -22,7 +24,10 @@ function getPublicAssetUrl(
   path: string,
   opts?: { origin?: string; protocol?: 'http' | 'https' },
 ) {
-  return `${opts?.protocol || 'https'}://${opts?.origin || 'yearn.fi'}${path}`
+  return `${resolvePublicAssetBaseUrl(
+    opts?.origin || 'yearn.fi',
+    opts?.protocol || 'https'
+  )}${path}`
 }
 
 function LockClosedIcon({ size = 24 }: { size?: number }) {
@@ -91,7 +96,7 @@ export function renderVaultOG(
   brandMark?: React.ReactElement,
   opts?: { origin?: string; protocol?: 'http' | 'https' },
 ) {
-  if (data.isYBold) return renderYBoldOG(data, fonts, opts)
+  if (data.isYBold) return renderYBoldOG(data, fonts)
 
   const footerText = `${data.chainName} | ${data.address.slice(
     0,
