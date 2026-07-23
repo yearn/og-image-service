@@ -28,6 +28,14 @@ export function isYvUsdAddress(chainID: string, address: string): boolean {
   )
 }
 
+export function isYBoldAddress(chainID: string, address: string): boolean {
+  return (
+    Number(chainID) === 1 &&
+    toComparableEthereumAddress(address) ===
+      toComparableEthereumAddress(YBOLD_VAULT_ADDRESS)
+  )
+}
+
 export function isValidChainID(chainID: string): boolean {
   return ALLOWED_CHAIN_IDS.includes(Number(chainID))
 }

@@ -22,7 +22,7 @@ export function TypeMarkYearnNaughty(
         width="309"
         height="85"
       >
-        <path d="M309 0H0V85H309V0Z" fill={color} />
+        <path d="M309 0H0V85H309V0Z" fill="#FFFFFF" />
       </mask>
       <g mask="url(#mask0_7_177)">
         <path

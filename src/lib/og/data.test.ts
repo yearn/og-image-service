@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import {
   DEFAULT_YEARN_ASSETS_URI,
+  isYBoldAddress,
   getYearnTokenLogoUrl,
   normalizeYearnAssetsBaseUrl,
 } from './data'
@@ -16,6 +17,15 @@ afterEach(() => {
 })
 
 describe('Yearn asset URL helpers', () => {
+  test('detects the Ethereum yBOLD vault address', () => {
+    expect(
+      isYBoldAddress('1', '0x9f4330700A36b29952869fac9b33f45eedd8a3D8')
+    ).toBe(true)
+    expect(
+      isYBoldAddress('10', '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8')
+    ).toBe(false)
+  })
+
   test('falls back to the default token-assets CDN when no base URL is provided', () => {
     delete process.env.BASE_YEARN_ASSETS_URI
 
