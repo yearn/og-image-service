@@ -9,8 +9,8 @@ import {
   formatUSD,
   getChainName,
   getYearnTokenLogoUrl,
+  isYBoldAddress,
   YBOLD_STAKING_ADDRESS,
-  YBOLD_VAULT_ADDRESS,
 } from './data'
 import { fetchKatanaAprs, fetchVaultData, fetchYBoldApr } from './fetchers'
 
@@ -26,6 +26,7 @@ export type StandardVaultOGData = {
   tvlUsd: string
   chainName: string
   address: string
+  isYBold: boolean
 }
 
 function formatPercent(value: number): string {
@@ -44,12 +45,13 @@ export async function resolveStandardVaultOGData(
   address: string
 ): Promise<StandardVaultOGData> {
   const vault = await fetchVaultData(chainID, address)
+  const isYBold = isYBoldAddress(chainID, address)
   let katanaAprs: any | null = null
   if (chainID === '747474' && vault && !hasKatanaRewardAprData(vault)) {
     katanaAprs = await fetchKatanaAprs()
   }
   let yBoldApr: { estimatedAPY: number; historicalAPY: number } | null = null
-  if (address.toLowerCase() === YBOLD_VAULT_ADDRESS.toLowerCase()) {
+  if (isYBold) {
     yBoldApr = await fetchYBoldApr(chainID, YBOLD_STAKING_ADDRESS)
   }
 
@@ -90,6 +92,7 @@ export async function resolveStandardVaultOGData(
       tvlUsd: formatUSD(vault.tvl?.tvl || 0),
       chainName: getChainName(parseInt(chainID, 10)),
       address,
+      isYBold,
     }
   }
 
@@ -101,5 +104,6 @@ export async function resolveStandardVaultOGData(
     tvlUsd: '$0',
     chainName: getChainName(parseInt(chainID, 10)),
     address,
+    isYBold,
   }
 }

@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from 'next/og'
 import { BrandConfig } from './brands'
+import { renderYBoldOG } from './yboldRender'
 
 export async function loadFonts(origin: string, protocol: 'http' | 'https') {
   let aeonikRegular: ArrayBuffer,
@@ -80,6 +81,7 @@ export function renderVaultOG(
     tvlUsd: string
     chainName: string
     address: string
+    isYBold: boolean
   },
   fonts: {
     aeonikRegular: ArrayBuffer
@@ -89,6 +91,8 @@ export function renderVaultOG(
   brandMark?: React.ReactElement,
   opts?: { origin?: string; protocol?: 'http' | 'https' },
 ) {
+  if (data.isYBold) return renderYBoldOG(data, fonts, opts)
+
   const footerText = `${data.chainName} | ${data.address.slice(
     0,
     6,
