@@ -216,7 +216,7 @@ export function renderYBoldOG(
                 display: 'flex',
               }}
             />
-            7-day realized APY
+            Estimated APY
           </div>
           <div
             style={{

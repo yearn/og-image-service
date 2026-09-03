@@ -28,11 +28,15 @@ export function isYvUsdAddress(chainID: string, address: string): boolean {
   )
 }
 
-export function isYBoldAddress(chainID: string, address: string): boolean {
+export function isYBoldAddress(
+  chainID: string | number,
+  address: string
+): boolean {
+  const normalized = toComparableEthereumAddress(address)
   return (
     Number(chainID) === 1 &&
-    toComparableEthereumAddress(address) ===
-      toComparableEthereumAddress(YBOLD_VAULT_ADDRESS)
+    (normalized === toComparableEthereumAddress(YBOLD_VAULT_ADDRESS) ||
+      normalized === toComparableEthereumAddress(YBOLD_STAKING_ADDRESS))
   )
 }
 
