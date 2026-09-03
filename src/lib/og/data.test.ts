@@ -17,9 +17,12 @@ afterEach(() => {
 })
 
 describe('Yearn asset URL helpers', () => {
-  test('detects the Ethereum yBOLD vault address', () => {
+  test('detects the Ethereum yBOLD and ysyBOLD addresses', () => {
     expect(
       isYBoldAddress('1', '0x9f4330700A36b29952869fac9b33f45eedd8a3D8')
+    ).toBe(true)
+    expect(
+      isYBoldAddress('1', '0x23346b04A7F55B8760e5860aa5a77383D63491CD')
     ).toBe(true)
     expect(
       isYBoldAddress('10', '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8')

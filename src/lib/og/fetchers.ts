@@ -11,6 +11,12 @@ function pickNumber(...values: unknown[]): number {
   return 0
 }
 
+function maxDefined(left: number | undefined, right: number | undefined) {
+  if (left === undefined) return right
+  if (right === undefined) return left
+  return Math.max(left, right)
+}
+
 function normalizeHttpsBaseUrl(rawValue: string | undefined, fallback: string): string {
   const normalizedFallback = fallback.replace(/\/+$/, '')
   const candidate = rawValue?.trim()
@@ -214,9 +220,15 @@ export async function fetchYBoldApr(
   const stakingSnapshot = await fetchKongVaultSnapshot(chainID, stakingAddress)
   const normalizedStakingSnapshot = normalizeKongVaultSnapshot(stakingSnapshot)
   if (normalizedStakingSnapshot?.apr) {
+    const sevenDayPpsAPY = toFiniteNumber(
+      stakingSnapshot?.performance?.historical?.weeklyNet
+    )
+    const oracleNetAPY = toFiniteNumber(
+      stakingSnapshot?.performance?.oracle?.netAPY
+    )
     const estimatedAPY =
+      maxDefined(sevenDayPpsAPY, oracleNetAPY) ??
       toFiniteNumber(stakingSnapshot?.apy?.weeklyNet) ??
-      toFiniteNumber(stakingSnapshot?.performance?.historical?.weeklyNet) ??
       toFiniteNumber(normalizedStakingSnapshot.apr.netAPR) ??
       0
 
@@ -230,7 +242,10 @@ export async function fetchYBoldApr(
   if (!st?.apr) return null
   return {
     estimatedAPY:
-      toFiniteNumber(st.apr.points?.weekAgo) ??
+      maxDefined(
+        toFiniteNumber(st.apr.points?.weekAgo),
+        toFiniteNumber(st.apr.forwardAPR?.netAPR)
+      ) ??
       toFiniteNumber(st.apr.netAPR) ??
       0,
     historicalAPY: st.apr.netAPR || 0,

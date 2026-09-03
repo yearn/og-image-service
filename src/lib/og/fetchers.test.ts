@@ -310,7 +310,7 @@ describe('Kong vault snapshot normalization', () => {
     expect(vault?.tvl?.tvl).toBe(18806547.346547082)
   })
 
-  test('uses the ysYBOLD staking snapshot 7-day historical APY for yBOLD estimated APY', async () => {
+  test('uses the higher ysyBOLD 7-day PPS APY for yBOLD estimated APY', async () => {
     delete process.env.KONG_REST_URL
 
     const fetchMock = mock(async (input: RequestInfo | URL) => {
@@ -334,7 +334,7 @@ describe('Kong vault snapshot normalization', () => {
           },
           apy: {
             net: 0.04639864387148984,
-            weeklyNet: 0.0549088591759741,
+            weeklyNet: 0.064,
           },
           tvl: { close: 1 },
           performance: {
@@ -366,7 +366,7 @@ describe('Kong vault snapshot normalization', () => {
     })
   })
 
-  test('uses performance historical weekly APY when the top-level weekly value is unavailable', async () => {
+  test('uses the higher ysyBOLD Oracle net APY for yBOLD estimated APY', async () => {
     delete process.env.KONG_REST_URL
 
     const fetchMock = mock(async (input: RequestInfo | URL) => {
@@ -398,6 +398,7 @@ describe('Kong vault snapshot normalization', () => {
               weeklyNet: 0.0512,
             },
             oracle: {
+              netAPY: 0.0612,
               apy: 0.0355,
               apr: 0.0349,
             },
@@ -415,12 +416,57 @@ describe('Kong vault snapshot normalization', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(apr).toEqual({
+      estimatedAPY: 0.0612,
+      historicalAPY: 0.04639864387148984,
+    })
+  })
+
+  test('uses the available 7-day PPS APY when Oracle net APY is unavailable', async () => {
+    delete process.env.KONG_REST_URL
+
+    const fetchMock = mock(async () => {
+      return {
+        ok: true,
+        json: async () => ({
+          address: '0x23346B04a7f55b8760E5860AA5A77383D63491cD',
+          chainId: 1,
+          name: 'Staked yBOLD',
+          symbol: 'ysyBOLD',
+          decimals: 18,
+          asset: {
+            address: '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8',
+            name: 'yBOLD',
+            symbol: 'yBOLD',
+            decimals: '18',
+          },
+          tvl: { close: 1 },
+          performance: {
+            historical: {
+              net: 0.04639864387148984,
+              weeklyNet: 0.0512,
+            },
+            oracle: {
+              apy: 0.065,
+            },
+          },
+        }),
+      } as Response
+    })
+
+    global.fetch = fetchMock as typeof fetch
+
+    const apr = await fetchYBoldApr(
+      '1',
+      '0x23346B04a7f55b8760E5860AA5A77383D63491cD'
+    )
+
+    expect(apr).toEqual({
       estimatedAPY: 0.0512,
       historicalAPY: 0.04639864387148984,
     })
   })
 
-  test('falls back to yDaemon APR values for yBOLD when Kong is unavailable', async () => {
+  test('falls back to the higher yDaemon APY value when Kong is unavailable', async () => {
     delete process.env.KONG_REST_URL
     delete process.env.YDAEMON_BASE_URI
 
@@ -455,7 +501,7 @@ describe('Kong vault snapshot normalization', () => {
               },
               extra: {},
               forwardAPR: {
-                netAPR: null,
+                netAPR: 0.0612,
               },
             },
           }),
@@ -474,7 +520,7 @@ describe('Kong vault snapshot normalization', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(apr).toEqual({
-      estimatedAPY: 0.0549088591759741,
+      estimatedAPY: 0.0612,
       historicalAPY: 0.04639864387148984,
     })
   })

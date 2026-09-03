@@ -1,4 +1,4 @@
-import { YBOLD_VAULT_ADDRESS } from './data'
+import { isYBoldAddress } from './data'
 import { toFiniteNumber } from './number'
 
 const KATANA_CHAIN_ID = 747474
@@ -128,7 +128,7 @@ export function calculateEstimatedAPY(
   if (!vault?.apr) return [0, undefined]
 
   if (
-    vault.address.toLowerCase() === YBOLD_VAULT_ADDRESS.toLowerCase() &&
+    isYBoldAddress(vault.chainID, vault.address) &&
     yBoldApr
   )
     return [yBoldApr.estimatedAPY || 0, undefined]
@@ -153,7 +153,7 @@ export function calculateHistoricalAPY(
   yBoldApr: { historicalAPY: number } | null
 ): number {
   if (
-    vault.address.toLowerCase() === YBOLD_VAULT_ADDRESS.toLowerCase() &&
+    isYBoldAddress(vault.chainID, vault.address) &&
     yBoldApr
   )
     return yBoldApr.historicalAPY

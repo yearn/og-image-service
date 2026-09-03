@@ -246,4 +246,25 @@ describe('Katana OG APY helpers', () => {
     expect(rewardsAPR).toBeCloseTo(0.03, 6)
     expect(historicalApy).toBeCloseTo(0.02, 6)
   })
+
+  test('applies yBOLD APY overrides to the ysyBOLD staking vault', () => {
+    const vault = makeVault({
+      address: '0x23346B04a7f55b8760E5860AA5A77383D63491cD',
+      chainID: 1,
+    })
+    const yBoldApr = {
+      estimatedAPY: 0.0612,
+      historicalAPY: 0.0464,
+    }
+
+    const [estimatedApy] = calculateEstimatedAPY(vault, undefined, yBoldApr)
+    const historicalApy = calculateHistoricalAPY(
+      vault,
+      undefined,
+      yBoldApr
+    )
+
+    expect(estimatedApy).toBe(0.0612)
+    expect(historicalApy).toBe(0.0464)
+  })
 })
