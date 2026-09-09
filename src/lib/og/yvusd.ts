@@ -89,12 +89,9 @@ export function resolveYvUsdHistoricalApy(
 
 export function resolveYvUsdCombinedTvl(
   unlockedVault: YvUsdVaultData | null,
-  lockedVault: YvUsdVaultData | null,
 ): number {
-  return (
-    toNonNegativeNumber(toFiniteNumber(unlockedVault?.tvl?.tvl)) +
-    toNonNegativeNumber(toFiniteNumber(lockedVault?.tvl?.tvl))
-  )
+  // Locked yvUSD holds base vault shares already included in this TVL.
+  return toNonNegativeNumber(toFiniteNumber(unlockedVault?.tvl?.tvl))
 }
 
 export async function resolveYvUsdOGData(): Promise<YvUsdOGData> {
@@ -126,7 +123,7 @@ export async function resolveYvUsdOGData(): Promise<YvUsdOGData> {
     historicalApyUnlocked: formatPercent(
       resolveYvUsdHistoricalApy(unlockedVault),
     ),
-    tvlUsd: formatUSD(resolveYvUsdCombinedTvl(unlockedVault, lockedVault)),
+    tvlUsd: formatUSD(resolveYvUsdCombinedTvl(unlockedVault)),
     chainName: getChainName(YVUSD_CHAIN_ID),
     address: YVUSD_UNLOCKED_ADDRESS,
   }
