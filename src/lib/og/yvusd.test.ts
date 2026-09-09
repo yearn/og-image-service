@@ -5,6 +5,7 @@ import {
   resolveYvUsdCombinedTvl,
   resolveYvUsdEstimatedApy,
   resolveYvUsdHistoricalApy,
+  resolveYvUsdOGData,
 } from './yvusd'
 
 describe('yvUSD helpers', () => {
@@ -55,19 +56,38 @@ describe('yvUSD helpers', () => {
     ).toBe(0.03)
   })
 
-  test('sums unlocked and locked TVL while ignoring invalid values', () => {
+  test('uses base vault TVL which already includes locked deposits', () => {
     expect(
-      resolveYvUsdCombinedTvl(
-        { tvl: { tvl: 1250000 } },
-        { tvl: { tvl: 875000 } }
-      )
-    ).toBe(2125000)
-    expect(
-      resolveYvUsdCombinedTvl(
-        { tvl: { tvl: -10 } },
-        { tvl: { tvl: Number.NaN } }
-      )
-    ).toBe(0)
+      resolveYvUsdCombinedTvl({ tvl: { tvl: 9300430.970722465 } })
+    ).toBe(9300430.970722465)
+  })
+
+  test('renders total TVL without adding the locked wrapper snapshot', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input).toLowerCase()
+      const locked = url.includes('0xaaafea48472f77563961cdb53291dedfb46f9040')
+      return Response.json(url.includes('/snapshot/') ? {
+        address: locked
+          ? '0xAaaFEa48472f77563961Cdb53291DEDfB46F9040'
+          : '0x696d02Db93291651ED510704c9b286841d506987',
+        chainId: 1,
+        tvl: { close: locked ? 3763363.1196666723 : 9300430.970722465 },
+      } : {})
+    }) as typeof fetch
+    try {
+      expect((await resolveYvUsdOGData()).tvlUsd).toBe('$9.30M')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('preserves zero and ignores missing or invalid base vault TVL', () => {
+    for (const value of [0, -10, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(resolveYvUsdCombinedTvl({ tvl: { tvl: value } })).toBe(0)
+    }
+    expect(resolveYvUsdCombinedTvl(null)).toBe(0)
+    expect(resolveYvUsdCombinedTvl({})).toBe(0)
   })
 
   test('matches APR service vaults by normalized address', () => {
