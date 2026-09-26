@@ -1,5 +1,8 @@
 {
   "cleanUrls": true,
   "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "bunx --bun next build"
+  "buildCommand": "bunx --bun next build",
+  "git": {
+    "deploymentEnabled": false
+  }
 }
