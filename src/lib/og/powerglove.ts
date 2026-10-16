@@ -21,9 +21,9 @@ export type PowergloveSnapshot = {
   fees?: { managementFee?: Numeric; performanceFee?: Numeric }
   apy?: { weeklyNet?: Numeric; monthlyNet?: Numeric }
   performance?: {
-    estimated?: { apy?: Numeric; type?: string }
-    oracle?: { netAPY?: Numeric; netAPR?: Numeric; apr?: Numeric }
-    historical?: { weeklyNet?: Numeric; monthlyNet?: Numeric }
+    estimated?: { apy?: Numeric; apr?: Numeric; type?: string }
+    oracle?: { netAPY?: Numeric; netAPR?: Numeric; apr?: Numeric; apy?: Numeric }
+    historical?: { net?: Numeric; weeklyNet?: Numeric; monthlyNet?: Numeric }
   }
 }
 export type PowergloveCardData = {
@@ -96,7 +96,13 @@ export async function resolvePowergloveCardData(chainID: string, address: string
     // Use the same normalization, reward fallback, and total as the yearn.fi OG.
     const vault = normalizeKongVaultSnapshot(snapshot)
     const katanaAprs = hasKatanaRewardAprData(vault) ? undefined : await fetchKatanaAprs()
-    data.expectedApy = calculateEstimatedAPY(vault, katanaAprs || undefined, null)[0]
+    // These are the native-rate inputs used by the shared Katana normalizer.
+    // Check before normalization replaces missing values with zero. Known
+    // incentives alone do not establish the complete expected vault APY.
+    const { oracle, estimated, historical } = snapshot.performance || {}
+    const hasNativeRate = [oracle?.netAPY, oracle?.apy, oracle?.apr, estimated?.apy, estimated?.apr, historical?.net]
+      .some(value => toFiniteNumber(value) !== undefined)
+    data.expectedApy = hasNativeRate ? calculateEstimatedAPY(vault, katanaAprs || undefined, null)[0] : undefined
     const incentives = getKatanaHistoricalApyBreakdown(vault, katanaAprs || undefined)?.kat ?? 0
     if (data.weeklyApy !== undefined) data.weeklyApy += incentives
     if (data.monthlyApy !== undefined) data.monthlyApy += incentives
@@ -104,14 +110,17 @@ export async function resolvePowergloveCardData(chainID: string, address: string
   if (isYBoldAddress(chainID, address)) {
     const staking = address.toLowerCase() === YBOLD_STAKING_ADDRESS.toLowerCase()
       ? snapshot : await fetchKongVaultSnapshot(chainID, YBOLD_STAKING_ADDRESS)
-    const staked = staking ? mapPowergloveSnapshot(staking) : undefined
-    const candidates = [staked?.weeklyApy, staking ? resolvePowergloveExpectedApy({ ...staking, performance: { oracle: staking.performance?.oracle } }) : undefined].filter((value): value is number => value !== undefined)
+    // Staking yield cannot be replaced with the base vault's yield. Let the
+    // route return an uncached, retryable 503 if its required snapshot fails.
+    if (!staking || Number(staking.chainId) !== Number(chainID) || staking.address?.toLowerCase() !== YBOLD_STAKING_ADDRESS.toLowerCase()) return null
+    const staked = mapPowergloveSnapshot(staking)
+    const candidates = [staked.weeklyApy, resolvePowergloveExpectedApy({ ...staking, performance: { oracle: staking.performance?.oracle } })].filter((value): value is number => value !== undefined)
     data.name = 'yBOLD'
     data.symbol = 'yBOLD'
     data.expectedApy = candidates.length ? Math.max(...candidates) : undefined
-    data.weeklyApy = staked?.weeklyApy
-    data.monthlyApy = staked?.monthlyApy
-    data.performanceFee = staked?.performanceFee
+    data.weeklyApy = staked.weeklyApy
+    data.monthlyApy = staked.monthlyApy
+    data.performanceFee = staked.performanceFee
   }
   if (isYvUsdAddress(chainID, address)) {
     const overlay = getYvUsdAprServiceVault(await fetchYvUsdAprs(), address)

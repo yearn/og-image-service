@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mapPowergloveSnapshot, powerglovePercent, resolvePowergloveExpectedApy, resolvePowergloveCardData } from './powerglove'
 
+import type { NextRequest } from 'next/server'
+import vaultHandler from '../../../pages/api/og/powerglove/vault/[chainID]/[address]'
 import { resolveStandardVaultOGData } from './vaultData'
 
 const identity = { address: '0xBe53A109B494E5c9f97b9Cd39Fe969BE68BF6204', chainId: 1 }
@@ -112,6 +114,41 @@ test('Katana incentives preserve missing history and genuine zero periods', asyn
     performance: { estimated: { components: { katanaAppRewardsAPR: .03, fixedRateKatanaRewards: .02 } } },
   })) as typeof fetch
   const data = await resolvePowergloveCardData('747474', identity.address)
+  expect(data?.expectedApy).toBeUndefined()
   expect(data?.weeklyApy).toBeUndefined()
   expect(data?.monthlyApy).toBeCloseTo(.05, 12)
+})
+
+describe('Powerglove unavailable-rate regressions', () => {
+  test('missing Katana native rates stay unavailable before normalization', async () => {
+    for (const performance of [undefined, { oracle: { netAPY: null, apy: '', apr: 'invalid' }, estimated: { apy: null, apr: '' }, historical: { net: null } }]) {
+      global.fetch = (async () => Response.json({ ...identity, chainId: 747474, tvl: { close: 1000 }, performance })) as typeof fetch
+      const data = await resolvePowergloveCardData('747474', identity.address)
+      expect(data?.expectedApy).toBeUndefined()
+      expect(powerglovePercent(data?.expectedApy)).toBe('—')
+      expect(data?.nav).toBe(1000)
+    }
+  })
+  test('an explicit zero Katana native rate stays zero without rewards', async () => {
+    global.fetch = (async () => Response.json({ ...identity, chainId: 747474, performance: { oracle: { netAPY: 0 } } })) as typeof fetch
+    const data = await resolvePowergloveCardData('747474', identity.address)
+    expect(data?.expectedApy).toBe(0)
+    expect(powerglovePercent(data?.expectedApy)).toBe('0%')
+  })
+  test('failed yBOLD staking fetch returns an uncached retryable 503 despite available base rates', async () => {
+    const address = '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8'
+    global.fetch = (async (input: string | URL | Request) => String(input).toLowerCase().includes('0x23346')
+      ? new Response('Unavailable', { status: 503 })
+      : Response.json({ ...identity, address, apy: { weeklyNet: .06, monthlyNet: .04 }, performance: { oracle: { netAPY: .05 } }, fees: { performanceFee: 1000 } })) as typeof fetch
+    expect(await resolvePowergloveCardData('1', address)).toBeNull()
+    const response = await vaultHandler(new Request(`http://localhost:3000/api/og/powerglove/vault/1/${address}`) as NextRequest)
+    expect(response.status).toBe(503)
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
+    expect(response.headers.get('Retry-After')).toBe('60')
+  })
+  test('a mismatched yBOLD staking snapshot also remains retryable', async () => {
+    const address = '0x9F4330700a36B29952869fac9b33f45EEdd8A3d8'
+    global.fetch = (async () => Response.json({ ...identity, address, apy: { weeklyNet: .06 } })) as typeof fetch
+    expect(await resolvePowergloveCardData('1', address)).toBeNull()
+  })
 })
