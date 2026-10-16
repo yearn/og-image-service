@@ -110,8 +110,7 @@ export function normalizeKongVaultSnapshot(snapshot: any): any | null {
 
   const fixedRateKatanaRewards =
     toFiniteNumber(estimatedComponents?.fixedRateKatanaRewards) ??
-    toFiniteNumber(estimatedComponents?.FixedRateKatanaRewards) ??
-    0
+    toFiniteNumber(estimatedComponents?.FixedRateKatanaRewards)
 
   const forwardNetAPR = isKatanaVault
     ? pickNumber(
@@ -157,7 +156,9 @@ export function normalizeKongVaultSnapshot(snapshot: any): any | null {
         stakingRewardsAPR: 0,
         gammaRewardAPR: 0,
         katanaBonusAPY: pickNumber(estimatedComponents?.katanaBonusAPY),
-        katanaAppRewardsAPR: pickNumber(estimatedComponents?.katanaAppRewardsAPR),
+        // Preserve missing rewards so the shared APY resolver can use its
+        // APR-service fallback. An explicit zero still counts as known data.
+        katanaAppRewardsAPR: toFiniteNumber(estimatedComponents?.katanaAppRewardsAPR),
         steerPointsPerDollar: pickNumber(estimatedComponents?.steerPointsPerDollar),
         fixedRateKatanaRewards,
       },
