@@ -40,7 +40,7 @@ function getYDaemonBaseUrl(): string {
   return normalizeHttpsBaseUrl(process.env.YDAEMON_BASE_URI, DEFAULT_YDAEMON_BASE_URL)
 }
 
-async function fetchKongVaultSnapshot(
+export async function fetchKongVaultSnapshot(
   chainID: string,
   address: string
 ): Promise<any | null> {
