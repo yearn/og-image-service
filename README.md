@@ -18,7 +18,7 @@ A Cloudflare Workers microservice to generate Open Graph (OG) social images for 
 - `BASE_YEARN_ASSETS_URI` e.g. `https://cdn.jsdelivr.net/gh/yearn/tokenassets@main` (vault logos)
 - `KATANA_APR_SERVICE_API` optional Katana APR fallback when Kong snapshots do not include Katana reward fields
 - `YDAEMON_BASE_URI` optional override for the yDaemon base URL used for vault data
-- `YVUSD_APR_SERVICE_API` optional for yvUSD APR overlay; defaults to `https://yearn-yvusd-apr-service.vercel.app/api/aprs`
+- `YVUSD_APR_SERVICE_API` optional for yvUSD APR overlay; defaults to `https://yvusd-api.yearn.fi/api/aprs`
 - `OG_ASSET_ORIGIN` optional public host for OG fonts and images outside the Worker (local `next dev`); defaults to `https://og.yearn.fi`. On Cloudflare they're read from the `ASSETS` binding
 - `ALLOWED_HOSTS` optional comma list for request-origin resolution (defaults to yearn.fi and localhost)
 
