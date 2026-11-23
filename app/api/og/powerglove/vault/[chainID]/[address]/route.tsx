@@ -5,9 +5,7 @@ import { resolveOrigin } from '@lib/og/origin'
 import { POWERGLOVE_CHAIN_IDS, resolvePowergloveCardData } from '@lib/og/powerglove'
 import { renderPowergloveOG } from '@lib/og/powergloveRender'
 
-export const runtime = 'edge'
-
-export default async function handler(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const match = new URL(req.url).pathname.match(/^\/api\/og\/powerglove\/vault\/(\d+)\/([^/]+)\/?$/)
   const chainID = match?.[1] || ''
   const address = normalizeEthereumAddress(match?.[2] || '')

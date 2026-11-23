@@ -20,3 +20,5 @@ pnpm-debug.log*
 
 .codex
 .codex/*
+.open-next
+.wrangler

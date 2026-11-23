@@ -13,10 +13,8 @@ import { resolveOrigin } from '@lib/og/origin'
 import { resolveStandardVaultOGData } from '@lib/og/vaultData'
 import { resolveYvUsdOGData } from '@lib/og/yvusd'
 
-export const runtime = 'edge'
-
 // Back-compat route that supports ?brand=yearn|katana. Prefer new brand-specific routes.
-export default async function handler(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const url = req.url || req.nextUrl?.pathname || ''
   const match = url.match(/\/api\/og\/vault\/(\d+)\/([a-fA-F0-9x]+)/i)
   const chainID = match?.[1] || '1'

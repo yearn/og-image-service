@@ -7,12 +7,10 @@ import {
   normalizeEthereumAddress,
 } from '@lib/og/data'
 import { loadFonts, renderVaultOG } from '@lib/og/render'
-import { resolveOrigin } from '@lib/og/origin'
+import { resolveOrigin, resolvePublicAssetBaseUrl } from '@lib/og/origin'
 import { resolveStandardVaultOGData } from '@lib/og/vaultData'
 
-export const runtime = 'edge'
-
-export default async function handler(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const url = req.url || req.nextUrl?.pathname || ''
   const match = url.match(/\/api\/og\/katana\/vault\/(\d+)\/([a-fA-F0-9x]+)/i)
   const chainID = match?.[1] || '1'
@@ -33,7 +31,7 @@ export default async function handler(req: NextRequest) {
   const brandMark = (
     <div style={{ display: 'flex', alignItems: 'center', marginTop: '40px' }}>
       <img
-        src={`${protocol}://${origin}/graphics/yearnxkatana-typemark.png`}
+        src={`${resolvePublicAssetBaseUrl(origin, protocol)}/graphics/yearnxkatana-typemark.png`}
         alt="Yearn × Katana"
         height={75}
         style={{ objectFit: 'contain', display: 'block' }}
