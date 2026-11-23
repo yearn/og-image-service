@@ -7,7 +7,7 @@ import {
   normalizeEthereumAddress,
 } from '@lib/og/data'
 import { loadFonts, renderVaultOG } from '@lib/og/render'
-import { resolveOrigin, resolvePublicAssetBaseUrl } from '@lib/og/origin'
+import { publicAssetDataUrl, resolveOrigin } from '@lib/og/origin'
 import { resolveStandardVaultOGData } from '@lib/og/vaultData'
 
 export async function GET(req: NextRequest) {
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   const brandMark = (
     <div style={{ display: 'flex', alignItems: 'center', marginTop: '40px' }}>
       <img
-        src={`${resolvePublicAssetBaseUrl(origin, protocol)}/graphics/yearnxkatana-typemark.png`}
+        src={await publicAssetDataUrl('/graphics/yearnxkatana-typemark.png', origin, protocol)}
         alt="Yearn × Katana"
         height={75}
         style={{ objectFit: 'contain', display: 'block' }}

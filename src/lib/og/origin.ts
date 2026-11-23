@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const DEFAULT_PUBLIC_ASSET_ORIGIN = 'https://og.yearn.fi'
 
@@ -27,6 +28,39 @@ export function resolvePublicAssetBaseUrl(
   if (origin.endsWith('.vercel.app')) return DEFAULT_PUBLIC_ASSET_ORIGIN
 
   return `${protocol}://${origin}`
+}
+
+type AssetFetcher = { fetch(url: string): Promise<Response> }
+
+function workerAssets(): AssetFetcher | undefined {
+  try {
+    return (getCloudflareContext().env as { ASSETS?: AssetFetcher }).ASSETS
+  } catch {
+    return undefined
+  }
+}
+
+export async function fetchPublicAsset(
+  path: string,
+  origin: string,
+  protocol: 'http' | 'https'
+): Promise<Response> {
+  const assets = workerAssets()
+  const res = assets
+    ? await assets.fetch(`https://assets.local${path}`)
+    : await fetch(`${resolvePublicAssetBaseUrl(origin, protocol)}${path}`)
+  if (!res.ok) throw new Error(path)
+  return res
+}
+
+export async function publicAssetDataUrl(
+  path: string,
+  origin = 'yearn.fi',
+  protocol: 'http' | 'https' = 'https'
+): Promise<string> {
+  const res = await fetchPublicAsset(path, origin, protocol)
+  const type = res.headers.get('content-type') || 'application/octet-stream'
+  return `data:${type};base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`
 }
 
 export function resolveOrigin(req: NextRequest): {

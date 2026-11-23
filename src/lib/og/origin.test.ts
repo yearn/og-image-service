@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { resolvePublicAssetBaseUrl } from './origin'
+import { fetchPublicAsset, resolvePublicAssetBaseUrl } from './origin'
 
 const ORIGINAL_OG_ASSET_ORIGIN = process.env.OG_ASSET_ORIGIN
 
@@ -37,5 +37,20 @@ describe('OG public asset origin', () => {
     expect(resolvePublicAssetBaseUrl('preview.vercel.app', 'https')).toBe(
       'https://assets.example.com'
     )
+  })
+
+  test('reads assets from the worker ASSETS binding instead of fetching its own host', async () => {
+    const context = Symbol.for('__cloudflare-context__')
+    const requested: string[] = []
+    ;(globalThis as Record<symbol, unknown>)[context] = {
+      env: { ASSETS: { fetch: async (url: string) => (requested.push(url), new Response('font')) } },
+    }
+    try {
+      const res = await fetchPublicAsset('/fonts/Aeonik-Regular.ttf', 'og-image-service.yearn.workers.dev', 'https')
+      expect(await res.text()).toBe('font')
+      expect(requested).toEqual(['https://assets.local/fonts/Aeonik-Regular.ttf'])
+    } finally {
+      delete (globalThis as Record<symbol, unknown>)[context]
+    }
   })
 })
