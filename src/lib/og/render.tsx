@@ -1,33 +1,16 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from 'next/og'
 import { BrandConfig } from './brands'
-import { resolvePublicAssetBaseUrl } from './origin'
+import { fetchPublicAsset, publicAssetDataUrl } from './origin'
 import { renderYBoldOG } from './yboldRender'
 
 export async function loadFonts(origin: string, protocol: 'http' | 'https') {
-  let aeonikRegular: ArrayBuffer,
-    aeonikBold: ArrayBuffer,
-    aeonikMono: ArrayBuffer
-  const assetBaseUrl = resolvePublicAssetBaseUrl(origin, protocol)
-  const fetchFont = async (name: string) => {
-    const res = await fetch(`${assetBaseUrl}/fonts/${name}`)
-    if (!res.ok) throw new Error(name)
-    return res.arrayBuffer()
-  }
-  aeonikRegular = await fetchFont('Aeonik-Regular.ttf')
-  aeonikBold = await fetchFont('Aeonik-Bold.ttf')
-  aeonikMono = await fetchFont('AeonikMono-Regular.ttf')
+  const fetchFont = async (name: string) =>
+    (await fetchPublicAsset(`/fonts/${name}`, origin, protocol)).arrayBuffer()
+  const aeonikRegular = await fetchFont('Aeonik-Regular.ttf')
+  const aeonikBold = await fetchFont('Aeonik-Bold.ttf')
+  const aeonikMono = await fetchFont('AeonikMono-Regular.ttf')
   return { aeonikRegular, aeonikBold, aeonikMono }
-}
-
-function getPublicAssetUrl(
-  path: string,
-  opts?: { origin?: string; protocol?: 'http' | 'https' },
-) {
-  return `${resolvePublicAssetBaseUrl(
-    opts?.origin || 'yearn.fi',
-    opts?.protocol || 'https'
-  )}${path}`
 }
 
 function LockClosedIcon({ size = 24 }: { size?: number }) {
@@ -72,7 +55,7 @@ function LockOpenIcon({ size = 24 }: { size?: number }) {
   )
 }
 
-export function renderVaultOG(
+export async function renderVaultOG(
   brand: BrandConfig,
   data: {
     icon: string
@@ -97,6 +80,7 @@ export function renderVaultOG(
   opts?: { origin?: string; protocol?: 'http' | 'https' },
 ) {
   if (data.isYBold) return renderYBoldOG(data, fonts)
+  const bg = brand.bgPath && (await publicAssetDataUrl(brand.bgPath, opts?.origin, opts?.protocol))
 
   const footerText = `${data.chainName} | ${data.address.slice(
     0,
@@ -132,11 +116,9 @@ export function renderVaultOG(
           position: 'relative',
         }}
       >
-        {brand.bgPath && (
+        {bg && (
           <img
-            src={`${opts?.protocol || 'https'}://${
-              opts?.origin || 'yearn.fi'
-            }${brand.bgPath}`}
+            src={bg}
             alt=""
             width="1200"
             height="630"
@@ -660,7 +642,7 @@ function renderYvUsdMetricValue(
   )
 }
 
-export function renderYvUsdOG(
+export async function renderYvUsdOG(
   brand: BrandConfig,
   data: {
     iconPath: string
@@ -686,6 +668,8 @@ export function renderYvUsdOG(
     6,
   )}...${data.address.slice(-4)}`
   const earnWithYearnText = brand.cta
+  const bg = brand.bgPath && (await publicAssetDataUrl(brand.bgPath, opts?.origin, opts?.protocol))
+  const icon = await publicAssetDataUrl(data.iconPath, opts?.origin, opts?.protocol)
 
   return new ImageResponse(
     <div
@@ -704,9 +688,9 @@ export function renderYvUsdOG(
           overflow: 'hidden',
         }}
       >
-        {brand.bgPath && (
+        {bg && (
           <img
-            src={getPublicAssetUrl(brand.bgPath, opts)}
+            src={bg}
             alt=""
             width="1200"
             height="630"
@@ -788,7 +772,7 @@ export function renderYvUsdOG(
                     }}
                   >
                     <img
-                      src={getPublicAssetUrl(data.iconPath, opts)}
+                      src={icon}
                       alt={data.name}
                       width="96"
                       height="96"
