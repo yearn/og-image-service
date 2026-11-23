@@ -206,7 +206,7 @@ export async function fetchKatanaAprs(): Promise<any | null> {
 export async function fetchYvUsdAprs(): Promise<any | null> {
   const url = (
     process.env.YVUSD_APR_SERVICE_API ||
-    'https://yearn-yvusd-apr-service.vercel.app/api/aprs'
+    'https://yvusd-api.yearn.fi/api/aprs'
   ).replace(/\/$/, '')
   if (!url.startsWith('https://')) return null
   return fetchJson(url, { Accept: 'application/json' })
