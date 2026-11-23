@@ -17,7 +17,7 @@ bunx --bun next build
 
 Requirements & context (summary)
 - This is a microservice under `yearn/og-image-service` for generating OG images.
-- Edge API routes under `pages/api/og/**` (Bun + Edge runtime configured in `vercel.json`).
+- API routes under `app/api/og/**`, built for Cloudflare Workers with `bun run build:cloudflare`.
 - Fonts and external fetches must honor `ALLOWED_HOSTS` and env-driven URIs.
 
 Quality gates when changing code

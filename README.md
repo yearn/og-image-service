@@ -1,8 +1,8 @@
 # OG Image Service
 
-A Vercel-ready microservice to generate Open Graph (OG) social images for Yearn properties.
+A Cloudflare Workers microservice to generate Open Graph (OG) social images for Yearn properties.
 
-- Next.js Edge Runtime using `next/og` ImageResponse
+- Next.js route handlers on Cloudflare Workers (OpenNext) using `next/og` ImageResponse
 - Brand-aware route params to customize backgrounds, logos, and text
 - Vault-aware for yearn.fi legacy patterns with security checks
 
@@ -19,7 +19,7 @@ A Vercel-ready microservice to generate Open Graph (OG) social images for Yearn 
 - `KATANA_APR_SERVICE_API` optional Katana APR fallback when Kong snapshots do not include Katana reward fields
 - `YDAEMON_BASE_URI` optional override for the yDaemon base URL used for vault data
 - `YVUSD_APR_SERVICE_API` optional for yvUSD APR overlay; defaults to `https://yearn-yvusd-apr-service.vercel.app/api/aprs`
-- `OG_ASSET_ORIGIN` optional public host for OG fonts and background assets; protected Vercel previews default to `https://og.yearn.fi`
+- `OG_ASSET_ORIGIN` optional public host for OG fonts and background assets; defaults to `https://og.yearn.fi`; set it to the worker's `workers.dev` URL in production so asset fetches don't loop back through the custom domain
 - `ALLOWED_HOSTS` optional comma list for request-origin resolution (defaults to yearn.fi and localhost)
 
 ## Run locally
@@ -31,7 +31,7 @@ bun run dev
 
 ## Deploy
 
-- Ship to Vercel as a separate project. Set the env vars above. Routes run on Edge.
+- Cloudflare Worker `og-image-service`, deployed by `.github/workflows/cloudflare-deploy.yml`. Env vars come from Doppler `og-image-service`.
 
 ## Powerglove cards
 

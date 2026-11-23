@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og'
-export const runtime = 'edge'
 
 const BRANDS = {
   yearn: {
@@ -13,7 +12,7 @@ const BRANDS = {
   },
 } as const
 
-export default async function handler(req: Request) {
+export async function GET(req: Request) {
   // @ts-ignore
   const url = new URL(req.url)
   const brandKey = (url.searchParams.get('brand') ||
